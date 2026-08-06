@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const c = require("../controllers/communityController");
+const commentCtrl = require("../controllers/commentController");
 const { protect, requireRole } = require("../middleware/auth");
 const multer = require("multer");
 const path = require("path");
@@ -41,6 +42,8 @@ router.get("/:id",     protect, c.getOne);
 router.post("/",       protect, requireRole("admin", "researcher"), upload.array("attachments", 5), c.create);
 router.put("/:id",     protect, requireRole("admin", "researcher"), upload.array("attachments", 5), c.update);
 router.delete("/:id",  protect, requireRole("admin"), c.remove);
+router.post("/:id/comments", protect, commentCtrl.addComment);
+router.get("/:id/comments", protect, commentCtrl.getComments);
 router.post("/seed",  c.seed);
 
 module.exports = router;

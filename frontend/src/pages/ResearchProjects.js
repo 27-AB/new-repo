@@ -11,6 +11,7 @@ import GanttChart from "../components/ui/GanttChart";
 import ExpenditureManager from "../components/ui/ExpenditureManager";
 import EthicsComplianceManager from "../components/ui/EthicsComplianceManager";
 import NotificationCenter from "../components/ui/NotificationCenter";
+import ProjectSocialHub from "../components/ui/ProjectSocialHub";
 
 const API = getServiceUrl("research");
 
@@ -518,6 +519,10 @@ export default function ResearchProjects() {
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                             <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("timeline"); }}>Timeline</Btn>
                             <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("milestones"); }}>Milestones</Btn>
+                            
+                            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("social"); }}>💬 Social & Links</Btn>
+    
+    
                             <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setShowBudget(true); }}>💰 Budget</Btn>
                             <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setShowEthics(true); }}>🛡️ Ethics</Btn>
                              <Btn small variant="secondary" onClick={() => { setActiveTab("gantt_chart"); }}>📊 Gantt</Btn>
@@ -685,6 +690,12 @@ export default function ResearchProjects() {
             <MilestoneManager 
               projectId={selectedProject._id}
               entityType="research"
+            />
+          )}
+          {activeView === "social" && (
+            <ProjectSocialHub 
+               project={selectedProject} 
+               apiBase={getServiceUrl("research")} 
             />
           )}
           
@@ -886,6 +897,7 @@ export default function ResearchProjects() {
                   )}
                 </div>
               </div>
+              
 
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={labelStyle}>File Attachments (PDF, Images, Documents - Max 10MB each)</label>

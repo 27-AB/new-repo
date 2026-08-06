@@ -4,6 +4,7 @@ const { protect, requireRole } = require("../middleware/auth");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const commentCtrl = require("../controllers/commentController");
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, "../../uploads");
@@ -46,6 +47,8 @@ router.delete("/:id",  protect, requireRole("admin"), c.remove);
 router.post("/:id/collaborators",       protect, requireRole("admin", "researcher"), c.addCollaborator);
 router.put("/:id/collaborators",        protect, requireRole("admin", "researcher"), c.updateCollaborator);
 router.delete("/:id/collaborators",     protect, requireRole("admin", "researcher"), c.removeCollaborator);
+router.post("/:id/comments", protect, commentCtrl.addComment);
+router.get("/:id/comments", protect, commentCtrl.getComments);
 
 router.post("/seed",   c.seed);
 

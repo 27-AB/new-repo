@@ -14,6 +14,11 @@ const communitySchema = new mongoose.Schema({
   tags:         [String],
   summary:      { type: String },
   impact:       { type: String },
+  outputs: [{
+    type: { type: String, enum: ['Publication', 'Report', 'Event', 'Grant'], default: 'Report' },
+    title: { type: String, trim: true },
+    url: { type: String },
+  }],
   // Ownership & Collaboration Fields
   createdBy:    { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   createdByName:{ type: String, default: "" },

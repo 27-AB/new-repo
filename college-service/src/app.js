@@ -4,7 +4,9 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const app = express();
 app.use(cors()); app.use(express.json());
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, {
+  family: 4
+})
   .then(() => console.log("College-service connected to MongoDB"))
   .catch(err => console.error("MongoDB error:", err.message));
 app.get("/health", (_req, res) => res.json({ status: "ok", service: "college-service" }));

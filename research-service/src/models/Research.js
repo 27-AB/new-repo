@@ -23,6 +23,13 @@ const researchSchema = new mongoose.Schema({
     size: { type: Number },
     uploadDate: { type: Date, default: Date.now }
   }],
+  // --- ADD THE OUTPUTS ARRAY HERE ---
+  outputs: [{
+    type: { type: String, enum: ['Publication', 'Patent', 'Grant'], default: 'Publication' },
+    title: { type: String, trim: true },
+    url: { type: String },
+    doi: { type: String }
+  }],
   // Ownership & Collaboration Fields
   createdBy:    { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   createdByName:{ type: String, default: "" },
