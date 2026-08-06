@@ -39,31 +39,78 @@ exports.update = async (req, res) => {
     const project = await Community.findById(req.params.id);
     if (!project) return res.status(404).json({ success: false, message: "Not found." });
     
-    // Ownership check: Only admin or project owner can edit
+    // Permission check: Admin can edit any, researcher can edit own or where they're high-priority collaborator
     const isOwner = project.createdBy && project.createdBy.toString() === req.user.id;
-    const isCollaborator = project.collaborators && project.collaborators.some(c => c.toString() === req.user.id);
     const isAdmin = req.user.role === "admin";
     
-    if (!isAdmin && !isOwner && !isCollaborator) {
+    // Check if user is a collaborator with high priority
+    let collaboratorPriority = null;
+    if (project.collaborators && project.collaborators.length > 0) {
+      const collab = project.collaborators.find(c => c.userId && c.userId.toString() === req.user.id);
+      if (collab) {
+        collaboratorPriority = collab.priority;
+      }
+    }
+    
+    const isHighPriorityCollaborator = collaboratorPriority === "high";
+    const canEdit = isAdmin || isOwner || isHighPriorityCollaborator;
+    
+    if (!canEdit) {
       return res.status(403).json({ 
         success: false, 
-        message: "Access denied. Only the project owner, collaborators, or admins can edit this project.",
-        owner: project.createdByName || "Unknown"
+        message: collaboratorPriority 
+          ? `Access denied. Only high-priority collaborators can edit. Your priority: ${collaboratorPriority}`
+          : "Access denied. Only the owner, high-priority collaborators, or admins can edit this project.",
+        owner: project.createdByName || "Unknown",
+        yourRole: req.user.role,
+        yourPriority: collaboratorPriority || "none"
       });
     }
     
+    // Handle file attachments
+    let attachments = project.attachments || [];
+    if (req.files && req.files.length > 0) {
+      const newAttachments = req.files.map(file => ({
+        filename: file.filename,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+        uploadDate: new Date()
+      }));
+      attachments = [...attachments, ...newAttachments];
+    }
+
+    // Parse collaborators from JSON string if present
+    let collaborators = project.collaborators || [];
+    if (req.body.collaborators) {
+      try {
+        collaborators = JSON.parse(req.body.collaborators);
+      } catch (e) {
+        console.error("Failed to parse collaborators:", e);
+        collaborators = project.collaborators || [];
+      }
+    }
+
     // Update project and track who modified it
     const updatedProject = await Community.findByIdAndUpdate(
-      req.params.id, 
+      req.params.id,
       {
         ...req.body,
+        attachments,
+        collaborators,
         lastModifiedBy: req.user.id,
         lastModifiedByName: req.user.name,
-      }, 
+      },
       { new: true, runValidators: true }
     );
     
-    res.json({ success: true, project: updatedProject });
+    res.json({ 
+      success: true, 
+      project: updatedProject, 
+      editedBy: req.user.name, 
+      role: req.user.role,
+      permission: isAdmin ? "admin" : isOwner ? "owner" : "high-priority collaborator"
+    });
   } catch (err) { res.status(400).json({ success: false, message: err.message }); }
 };
 

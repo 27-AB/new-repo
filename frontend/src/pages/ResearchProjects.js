@@ -5,6 +5,12 @@ import { Badge, SectionCard, PageHeader, Btn, Loader, ErrorMsg, fmtETB } from ".
 
 import { getServiceUrl } from "../config/api";
 import AICopilotPanel from "../components/ai/AICopilotPanel";
+import TimelineManager from "../components/ui/TimelineManager";
+import MilestoneManager from "../components/ui/MilestoneManager";
+import GanttChart from "../components/ui/GanttChart";
+import ExpenditureManager from "../components/ui/ExpenditureManager";
+import EthicsComplianceManager from "../components/ui/EthicsComplianceManager";
+import NotificationCenter from "../components/ui/NotificationCenter";
 
 const API = getServiceUrl("research");
 
@@ -52,7 +58,7 @@ export default function ResearchProjects() {
   const [collegeFilter, setCollegeFilter] = useState(queryCollege);
   const [departmentFilter, setDepartmentFilter] = useState(queryDepartment);
   const [yearFilter, setYearFilter] = useState(queryYear);
-  const [activeTab, setActiveTab] = useState("active_portfolio"); // "active_portfolio" or "proposal_pipeline"
+  const [activeTab, setActiveTab] = useState("active_portfolio"); // "active_portfolio" | "proposal_pipeline" | "gantt_chart"
   
   const [showForm, setShowForm] = useState(false);
   const [editing,  setEditing]  = useState(null);
@@ -61,6 +67,13 @@ export default function ResearchProjects() {
   const [form,     setForm]     = useState(EMPTY_FORM);
   const [allResearchers, setAllResearchers] = useState([]);
   const [attachments, setAttachments] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [activeView, setActiveView] = useState("list"); // "list", "timeline", "milestones", "gantt", "budget", "ethics"
+  const [showBudget, setShowBudget] = useState(false);
+  const [showEthics, setShowEthics] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [timelines, setTimelines] = useState([]);
+  const [milestones, setMilestones] = useState([]);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -223,6 +236,89 @@ export default function ResearchProjects() {
     }
   };
 
+  // Load all timelines for Gantt chart view
+  const loadAllTimelines = async () => {
+    try {
+      const res = await fetch(`${API}/timeline/all`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTimelines(data.timelineItems || []);
+      }
+    } catch (e) {
+      console.error("Error loading all timelines:", e);
+      setTimelines([]);
+    }
+  };
+
+  // Load all milestones for Gantt chart view
+  const loadAllMilestones = async () => {
+    try {
+      const res = await fetch(`${API}/milestones/all`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMilestones(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.error("Error loading all milestones:", e);
+      setMilestones([]);
+    }
+  };
+
+  // Load project-specific timelines for TimelineManager view
+  const loadProjectTimelines = async (projectId) => {
+    try {
+      const res = await fetch(`${API}/timeline/research/${projectId}/timeline`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          return data.timelineItems || [];
+        }
+      }
+      return [];
+    } catch (e) {
+      console.error("Error loading project timelines:", e);
+      return [];
+    }
+  };
+
+  // Load project-specific milestones for MilestoneManager view
+  const loadProjectMilestones = async (projectId) => {
+    try {
+      const res = await fetch(`${API}/milestones/project/${projectId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+      return [];
+    } catch (e) {
+      console.error("Error loading project milestones:", e);
+      return [];
+    }
+  };
+
+  // Load timeline and milestone data when switching to relevant views
+  useEffect(() => {
+    if (activeView === "gantt" || activeView === "milestones") {
+      loadAllTimelines();
+      loadAllMilestones();
+    }
+  }, [activeView, token]);
+
+  // Load gantt data when Gantt tab is activated
+  useEffect(() => {
+    if (activeTab === "gantt_chart") {
+      loadAllTimelines();
+      loadAllMilestones();
+    }
+  }, [activeTab, token]);
+
   const openEdit = (p) => {
     setEditing(p);
     // Convert collaborators from new structure (userId + priority) to old structure for backward compatibility
@@ -277,33 +373,36 @@ export default function ResearchProjects() {
             <Btn onClick={handleSeed} variant="secondary">Seed Sample Data</Btn>
           )}
           {(user?.role === "admin" || user?.role === "researcher") && (
-            <Btn onClick={openAdd}>+ Add Research Proposal</Btn>
+            <>
+              <Btn onClick={() => setShowNotifications(true)} variant="secondary">
+                🔔 Notifications
+              </Btn>
+              <Btn onClick={openAdd}>+ Add Research Proposal</Btn>
+            </>
           )}
         </>}
       />
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 20, paddingBottom: 2 }}>
-        <button
-          onClick={() => setActiveTab("active_portfolio")}
-          style={{
-            background: "transparent", border: "none",
-            borderBottom: activeTab === "active_portfolio" ? "2px solid #22d3ee" : "2px solid transparent",
-            color: activeTab === "active_portfolio" ? "#22d3ee" : "#64748b",
-            padding: "10px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600, transition: "all .15s"
-          }}>
-          🏛️ Active Research Portfolio
-        </button>
-        <button
-          onClick={() => setActiveTab("proposal_pipeline")}
-          style={{
-            background: "transparent", border: "none",
-            borderBottom: activeTab === "proposal_pipeline" ? "2px solid #22d3ee" : "2px solid transparent",
-            color: activeTab === "proposal_pipeline" ? "#22d3ee" : "#64748b",
-            padding: "10px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600, transition: "all .15s"
-          }}>
-          📋 Grant Proposal Pipeline (Kanban Board)
-        </button>
+        {[
+          { key: "active_portfolio",   label: "🏛️ Active Research Portfolio" },
+          { key: "proposal_pipeline",  label: "📋 Grant Proposal Pipeline" },
+          { key: "gantt_chart",        label: "📊 Gantt & Timeline View" },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              background: "transparent", border: "none",
+              borderBottom: activeTab === tab.key ? "2px solid #22d3ee" : "2px solid transparent",
+              color: activeTab === tab.key ? "#22d3ee" : "#64748b",
+              padding: "10px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600, transition: "all .15s"
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Filters (Active Portfolio tab only) */}
@@ -416,7 +515,12 @@ export default function ResearchProjects() {
                           )}
                         </td>
                         <td style={{ padding: "10px 12px" }}>
-                          <div style={{ display: "flex", gap: 6 }}>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("timeline"); }}>Timeline</Btn>
+                            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("milestones"); }}>Milestones</Btn>
+                            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setShowBudget(true); }}>💰 Budget</Btn>
+                            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setShowEthics(true); }}>🛡️ Ethics</Btn>
+                             <Btn small variant="secondary" onClick={() => { setActiveTab("gantt_chart"); }}>📊 Gantt</Btn>
                             {(user?.role === "admin" || p.createdBy === user?.id || (p.collaborators && p.collaborators.some(c => c.userId === user?.id))) && (
                               <Btn small onClick={() => { setEditing(p); setForm({ ...p, collaborators: p.collaborators || [] }); setAttachments([]); setShowForm(true); }}>Edit</Btn>
                             )}
@@ -529,7 +633,70 @@ export default function ResearchProjects() {
               ))}
             </div>
           )}
+          {/* Gantt Chart Tab – shows all projects */}
+          {activeTab === "gantt_chart" && (
+            <div style={{ marginTop: 20 }}>
+              <SectionCard title="📊 Gantt Chart View">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <div style={{ color: "#64748b", fontSize: 13 }}>
+                    {activeProjects.length} active projects · Gantt & Timeline View
+                  </div>
+                </div>
+                <GanttChart
+                  projects={activeProjects}
+                  timelines={timelines}
+                  milestones={milestones}
+                  entityType="research"
+                  onEdit={(p) => openEdit(p)}
+                  onDelete={(id) => handleDelete(id)}
+                  canEdit={(p) => user?.role === "admin" || p.createdBy === user?.id || (p.collaborators && p.collaborators.some(c => c.userId === user?.id))}
+                  canDelete={(p) => user?.role === "admin"}
+                />
+              </SectionCard>
+            </div>
+          )}
         </>
+      )}
+
+      {/* Project Detail Views */}
+      {selectedProject && activeView !== "list" && (
+        <div style={{ marginTop: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+            <button
+              onClick={() => { setSelectedProject(null); setActiveView("list"); }}
+              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#e2e8f0", padding: "8px 16px", borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
+            >
+              ← Back to Projects
+            </button>
+            <h2 style={{ color: "#e2e8f0", fontSize: 20, fontWeight: 700, margin: 0 }}>
+              {selectedProject.title}
+            </h2>
+          </div>
+
+          {activeView === "timeline" && (
+            <TimelineManager 
+              entityType="research"
+              entityId={selectedProject._id} 
+              entityTitle={selectedProject.title}
+            />
+          )}
+          
+          {activeView === "milestones" && (
+            <MilestoneManager 
+              projectId={selectedProject._id}
+              entityType="research"
+            />
+          )}
+          
+          {activeView === "gantt" && (
+            <GanttChart 
+              projects={projects}
+              timelines={timelines}
+              milestones={milestones}
+              entityType="research"
+            />
+          )}
+        </div>
       )}
 
       {/* Add / Edit Modal */}
@@ -764,6 +931,30 @@ export default function ResearchProjects() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Budget & Expenditure Manager Modal */}
+      {showBudget && selectedProject && (
+        <ExpenditureManager
+          projectId={selectedProject._id}
+          projectTitle={selectedProject.title}
+          budget={selectedProject.fundingETB}
+          onClose={() => { setShowBudget(false); setSelectedProject(null); load(); }}
+        />
+      )}
+
+      {/* Ethics & Compliance Manager Modal */}
+      {showEthics && selectedProject && (
+        <EthicsComplianceManager
+          projectId={selectedProject._id}
+          projectTitle={selectedProject.title}
+          onClose={() => { setShowEthics(false); setSelectedProject(null); load(); }}
+        />
+      )}
+
+      {/* Notification Center Modal */}
+      {showNotifications && (
+        <NotificationCenter onClose={() => setShowNotifications(false)} />
       )}
     </div>
   );

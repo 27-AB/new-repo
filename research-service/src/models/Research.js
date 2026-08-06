@@ -32,6 +32,27 @@ const researchSchema = new mongoose.Schema({
   }],
   lastModifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   lastModifiedByName: { type: String, default: "" },
+  
+  // Ethics & Compliance (IRB) Fields
+  ethicsApprovalNumber: { type: String, trim: true, default: "" },
+  ethicsApprovalDate: { type: Date, default: null },
+  ethicsExpiryDate: { type: Date, default: null },
+  ethicsStatus: { 
+    type: String, 
+    enum: ["not_required", "pending", "approved", "expired", "rejected"], 
+    default: "not_required" 
+  },
+  irbInstitution: { type: String, trim: true, default: "" },
+  ethicsNotes: { type: String, default: "" },
+  
+  // Financial Lock (when ethics expired or budget exceeded)
+  financialLock: {
+    isLocked: { type: Boolean, default: false },
+    reason: { type: String, enum: ["", "ethics_expired", "budget_exceeded", "manual_lock"], default: "" },
+    lockedDate: { type: Date, default: null },
+    lockedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    lockedByName: { type: String, default: "" }
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Research", researchSchema);

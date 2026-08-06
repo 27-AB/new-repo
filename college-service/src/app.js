@@ -9,5 +9,7 @@ mongoose.connect(process.env.MONGO_URI)
   .catch(err => console.error("MongoDB error:", err.message));
 app.get("/health", (_req, res) => res.json({ status: "ok", service: "college-service" }));
 app.use("/", require("./routes/collegeRouter"));
+app.use("/timeline", require("./routes/timelineRouter"));
+app.use("/milestones", require("./routes/milestoneRouter"));
 app.use((_req, res) => res.status(404).json({ success: false, message: "Route not found." }));
 module.exports = app;

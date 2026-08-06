@@ -11,7 +11,15 @@ exports.register = async (req, res) => {
     if (await User.findOne({ email }))
       return res.status(400).json({ success: false, message: "Email already registered." });
     const user = await User.create({ name, email, password, role: role || "viewer", college });
-    res.status(201).json({ success: true, token: sign(user), user: { id: user._id, name: user.name, email: user.email, role: user.role, college: user.college } });
+    res.status(201).json({ success: true, token: sign(user), user: { 
+      id: user._id, 
+      name: user.name, 
+      email: user.email, 
+      role: user.role, 
+      college: user.college,
+      notificationEmail: user.notificationEmail || '',
+      receiveNotifications: user.receiveNotifications !== undefined ? user.receiveNotifications : true
+    } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -26,7 +34,15 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid email or password." });
     if (!user.isActive)
       return res.status(403).json({ success: false, message: "Account deactivated." });
-    res.json({ success: true, token: sign(user), user: { id: user._id, name: user.name, email: user.email, role: user.role, college: user.college } });
+    res.json({ success: true, token: sign(user), user: { 
+      id: user._id, 
+      name: user.name, 
+      email: user.email, 
+      role: user.role, 
+      college: user.college,
+      notificationEmail: user.notificationEmail || '',
+      receiveNotifications: user.receiveNotifications !== undefined ? user.receiveNotifications : true
+    } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

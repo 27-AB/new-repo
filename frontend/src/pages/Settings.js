@@ -15,6 +15,7 @@ export default function Settings() {
   const [showAddUser, setShowAddUser] = useState(false);
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "viewer", college: "" });
   const [creatingUser, setCreatingUser] = useState(false);
+  const [seedingMilestones, setSeedingMilestones] = useState(false);
   
   // Profile update state
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -26,6 +27,11 @@ export default function Settings() {
   const [editUserForm, setEditUserForm] = useState({ name: "", email: "", college: "", role: "viewer", password: "", isActive: true });
   const [editingUserId, setEditingUserId] = useState(null);
   const [updatingUser, setUpdatingUser] = useState(false);
+  
+  // Notification settings state
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [notificationSettingsForm, setNotificationSettingsForm] = useState({ notificationEmail: "", receiveNotifications: true });
+  const [updatingNotificationSettings, setUpdatingNotificationSettings] = useState(false);
   
   // API Endpoints State
   const [apiConfig, setApiConfig] = useState(() => {
@@ -201,6 +207,28 @@ export default function Settings() {
     }
   };
 
+  // Seed milestones for all existing research projects
+  const handleSeedMilestones = async () => {
+    if (!window.confirm("This will replace all existing milestones with fresh sample data. Continue?")) return;
+    setSeedingMilestones(true);
+    setMsg("info:Seeding milestone data for all research projects...");
+    addLog("📍 Starting milestone seeding pipeline...", "info");
+    try {
+      const res = await fetch(`${apiConfig.researchUrl}/milestones/seed`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.message || "Milestone seed failed");
+      addLog(`✅ Milestone seeding complete: ${d.totalMilestones} milestones seeded for ${d.projectsCount} projects.`, "success");
+      setMsg(`success:${d.message || "Milestones seeded successfully!"}`);
+      setTimeout(() => setMsg(""), 5000);
+    } catch (e) {
+      addLog(`❌ Milestone seed failed: ${e.message}`, "error");
+      setMsg("error:" + e.message);
+    } finally { setSeedingMilestones(false); }
+  };
+
   // Change user role (admin only)
   const handleRoleChange = async (userId, newRole) => {
     setSavingRole(userId);
@@ -287,6 +315,44 @@ export default function Settings() {
       addLog(`❌ Profile update failed: ${e.message}`, "error");
       setMsg("error:" + e.message);
     } finally { setUpdatingProfile(false); }
+  };
+
+  // Update notification settings
+  const handleUpdateNotificationSettings = async (e) => {
+    e.preventDefault();
+    setUpdatingNotificationSettings(true);
+    addLog("Updating notification settings...", "info");
+    try {
+      const res = await fetch(`${apiConfig.authUrl}/auth/notification-email`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(notificationSettingsForm)
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.message);
+      
+      addLog("Notification settings updated successfully.", "success");
+      setMsg("success:Notification settings saved!");
+      setShowNotificationSettings(false);
+      setNotificationSettingsForm({ notificationEmail: "", receiveNotifications: true });
+      
+      // Refresh user data
+      const userRes = await fetch(`${apiConfig.authUrl}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        if (userData.success && userData.user) {
+          localStorage.setItem('user', JSON.stringify(userData.user));
+          window.location.reload();
+        }
+      }
+      
+      setTimeout(() => setMsg(""), 5000);
+    } catch (e) {
+      addLog(`❌ Notification settings update failed: ${e.message}`, "error");
+      setMsg("error:" + e.message);
+    } finally { setUpdatingNotificationSettings(false); }
   };
 
   // Admin: Update any user's profile
@@ -442,7 +508,12 @@ export default function Settings() {
             <div style={{ background:"rgba(245,158,11,0.08)", border:"1px solid rgba(245,158,11,0.2)", borderRadius:8, padding:"10px 14px", marginBottom:16, fontSize:12, color:"#f59e0b" }}>
               ⚠️ Running this resets database collections for colleges, researchers, research projects, community projects, and core accounts.
             </div>
-            <Btn onClick={handleSeedAll} variant="success">🌱 WIPE & INITIALISE ASTU DATA</Btn>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <Btn onClick={handleSeedAll} variant="success">🌱 WIPE & INITIALISE ASTU DATA</Btn>
+              <Btn onClick={handleSeedMilestones} variant="secondary" disabled={seedingMilestones}>
+                {seedingMilestones ? "Seeding Milestones..." : "📍 Seed Milestones"}
+              </Btn>
+            </div>
           </SectionCard>
         </div>
       )}
@@ -645,6 +716,107 @@ export default function Settings() {
               <div style={{ display:"flex", gap:10, marginTop:8 }}>
                 <Btn disabled={updatingUser}>{updatingUser ? "Updating..." : "Update User"}</Btn>
                 <Btn variant="secondary" onClick={() => setShowEditUser(false)}>Cancel</Btn>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Settings */}
+      <div style={{ marginTop:16 }}>
+        <SectionCard title="🔔 Notification Settings" action={<Btn small onClick={() => { setShowNotificationSettings(true); setNotificationSettingsForm({ notificationEmail: user?.notificationEmail || "", receiveNotifications: user?.receiveNotifications ?? true }); }}>Edit Settings</Btn>}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:12 }}>
+            <div style={{ background:"rgba(255,255,255,0.03)", borderRadius:8, padding:"12px 16px" }}>
+              <p style={{ color:"#475569", fontSize:11, fontWeight:600, textTransform:"uppercase", letterSpacing:".05em", margin:"0 0 4px" }}>Notification Email</p>
+              <p style={{ color:"#e2e8f0", fontSize:13, fontWeight:500, margin:0, fontFamily:"monospace" }}>{user?.notificationEmail || "Not set"}</p>
+              <p style={{ color:user?.notificationEmail?"#4ade80":"#f87171", fontSize:11, marginTop:4, margin:0 }}>
+                {user?.notificationEmail ? "✅ Email configured" : "❌ No notification email set"}
+              </p>
+            </div>
+            <div style={{ background:"rgba(255,255,255,0.03)", borderRadius:8, padding:"12px 16px" }}>
+              <p style={{ color:"#475569", fontSize:11, fontWeight:600, textTransform:"uppercase", letterSpacing:".05em", margin:"0 0 4px" }}>Receive Notifications</p>
+              <p style={{ color:"#e2e8f0", fontSize:13, fontWeight:500, margin:0, textTransform:"capitalize" }}>{user?.receiveNotifications ? "Yes" : "No"}</p>
+              <p style={{ color:user?.receiveNotifications?"#4ade80":"#f87171", fontSize:11, marginTop:4, margin:0 }}>
+                {user?.receiveNotifications ? "✅ Notifications enabled" : "❌ Notifications disabled"}
+              </p>
+            </div>
+          </div>
+          
+          {/* Notification Settings Form */}
+          {showNotificationSettings && (
+            <div style={{ marginTop:20, background:"rgba(34,211,238,0.05)", border:"1px solid rgba(34,211,238,0.2)", borderRadius:8, padding:16 }}>
+              <h4 style={{ color:"#22d3ee", fontSize:14, fontWeight:600, margin:"0 0 12px" }}>Configure Notification Settings</h4>
+              <form onSubmit={handleUpdateNotificationSettings} style={{ display:"grid", gap:12 }}>
+                <div>
+                  <label style={{ display:"block", color:"#94a3b8", fontSize:11, fontWeight:600, marginBottom:5 }}>Email for Notifications</label>
+                  <input
+                    type="email"
+                    value={notificationSettingsForm.notificationEmail}
+                    onChange={e => setNotificationSettingsForm({...notificationSettingsForm, notificationEmail: e.target.value})}
+                    style={inputStyle}
+                    placeholder="e.g. your-email@gmail.com"
+                  />
+                  <p style={{ color:"#64748b", fontSize:11, marginTop:8, margin:0 }}>
+                    💡 All notifications (deadlines, overdue, ethics alerts) will be sent to this email
+                  </p>
+                </div>
+                <div>
+                  <label style={{ display:"flex", alignItems:"center", gap:8, color:"#94a3b8", fontSize:11, fontWeight:600, marginBottom:5 }}>
+                    <input
+                      type="checkbox"
+                      checked={notificationSettingsForm.receiveNotifications}
+                      onChange={e => setNotificationSettingsForm({...notificationSettingsForm, receiveNotifications: e.target.checked})}
+                      style={{ width:20, height:20 }}
+                    />
+                    Receive notification emails
+                  </label>
+                </div>
+                <div style={{ display:"flex", gap:10 }}>
+                  <Btn disabled={updatingNotificationSettings}>{updatingNotificationSettings ? "Saving..." : "Save Settings"}</Btn>
+                  <Btn variant="secondary" onClick={() => setShowNotificationSettings(false)}>Cancel</Btn>
+                </div>
+              </form>
+            </div>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* Edit Notification Settings Modal */}
+      {showNotificationSettings && (
+        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.7)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000 }}>
+          <div style={{ background:"#162030", border:"1px solid rgba(255,255,255,0.1)", borderRadius:14, padding:24, width:500, maxHeight:"90vh", overflowY:"auto" }}>
+            <h3 style={{ color:"#e2e8f0", fontSize:18, fontWeight:700, margin:"0 0 16px" }}>🔔 Notification Settings</h3>
+            <p style={{ color:"#64748b", fontSize:13, marginBottom:16 }}>
+              Set your email address to receive notifications about deadlines, overdue milestones, and ethics approvals.
+            </p>
+            <form onSubmit={handleUpdateNotificationSettings} style={{ display:"grid", gap:12 }}>
+              <div>
+                <label style={{ display:"block", color:"#94a3b8", fontSize:11, fontWeight:600, marginBottom:5 }}>Email for Notifications</label>
+                <input
+                  type="email"
+                  value={notificationSettingsForm.notificationEmail}
+                  onChange={e => setNotificationSettingsForm({...notificationSettingsForm, notificationEmail: e.target.value})}
+                  style={inputStyle}
+                  placeholder="your-email@gmail.com"
+                />
+                <p style={{ color:"#64748b", fontSize:11, marginTop:8, margin:0 }}>
+                  All system notifications will be sent to this email address.
+                </p>
+              </div>
+              <div>
+                <label style={{ display:"flex", alignItems:"center", gap:8, color:"#94a3b8", fontSize:11, fontWeight:600, marginBottom:5 }}>
+                  <input
+                    type="checkbox"
+                    checked={notificationSettingsForm.receiveNotifications}
+                    onChange={e => setNotificationSettingsForm({...notificationSettingsForm, receiveNotifications: e.target.checked})}
+                    style={{ width:20, height:20 }}
+                  />
+                  Receive notification emails
+                </label>
+              </div>
+              <div style={{ display:"flex", gap:10 }}>
+                <Btn disabled={updatingNotificationSettings}>{updatingNotificationSettings ? "Saving..." : "Save Settings"}</Btn>
+                <Btn variant="secondary" onClick={() => setShowNotificationSettings(false)}>Cancel</Btn>
               </div>
             </form>
           </div>

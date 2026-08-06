@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { useAuth } from "../context/AuthContext";
@@ -110,6 +110,32 @@ export default function Dashboard() {
   const [profileForm, setProfileForm] = useState({ name: "", email: "", college: "", role: "viewer", password: "" });
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState("");
+  const [milestoneStats, setMilestoneStats] = useState(null);
+  const [milestoneLoading, setMilestoneLoading] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    const researchAPI = getServiceUrl("research");
+    setMilestoneLoading(true);
+    Promise.all([
+      fetch(`${researchAPI}/milestones/stats`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null),
+      fetch(`${researchAPI}/milestones/overdue`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null),
+      fetch(`${researchAPI}/milestones/upcoming`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null),
+      fetch(`${researchAPI}/milestones/all`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null),
+    ]).then(([stats, overdue, upcoming, all]) => {
+      const allItems = Array.isArray(all) ? all : [];
+      const avgProgress = allItems.length > 0
+        ? Math.round(allItems.reduce((s, m) => s + (m.progress || 0), 0) / allItems.length)
+        : 0;
+      setMilestoneStats({
+        ...(stats || {}),
+        overdueCount: Array.isArray(overdue) ? overdue.length : 0,
+        upcomingCount: Array.isArray(upcoming) ? upcoming.length : 0,
+        total: allItems.length,
+        avgProgress,
+      });
+    }).catch(console.error).finally(() => setMilestoneLoading(false));
+  }, [token]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -558,7 +584,66 @@ export default function Dashboard() {
         </SectionCard>
       </div>
 
-      {/* Recent projects table */}
+
+      {/* Milestone Analytics Section */}
+      <div style={{ marginBottom: 16 }}>
+        <SectionCard
+          title="📍 Milestone Analytics"
+          action={
+            <button
+              onClick={() => navigate("/research")}
+              style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.25)", borderRadius: 6, padding: "5px 12px", color: "#22d3ee", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+            >View Research →</button>
+          }
+        >
+          {milestoneLoading ? (
+            <div style={{ color: "#475569", fontSize: 13, textAlign: "center", padding: "24px 0" }}>Loading milestone data...</div>
+          ) : milestoneStats && milestoneStats.total > 0 ? (
+            <div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 16 }}>
+                {[
+                  { label: "Total Milestones", value: milestoneStats.total, color: "#22d3ee", icon: "📋" },
+                  { label: "Completed", value: milestoneStats.completed || 0, color: "#10b981", icon: "✅" },
+                  { label: "In Progress", value: milestoneStats["in-progress"] || 0, color: "#0ea5e9", icon: "🔄" },
+                  { label: "Overdue", value: milestoneStats.overdueCount || 0, color: "#ef4444", icon: "🚨" },
+                  { label: "Due in 30 Days", value: milestoneStats.upcomingCount || 0, color: "#f59e0b", icon: "⏰" },
+                ].map(({ label, value, color, icon }) => (
+                  <div key={label} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${color}20`, borderRadius: 10, padding: "14px 16px", textAlign: "center", transition: "border-color .2s" }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = `${color}60`}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = `${color}20`}
+                  >
+                    <div style={{ fontSize: 18, marginBottom: 6 }}>{icon}</div>
+                    <div style={{ color, fontSize: 22, fontWeight: 700 }}>{value}</div>
+                    <div style={{ color: "#64748b", fontSize: 11, marginTop: 4 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 8, padding: "12px 16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600 }}>Average Milestone Progress</span>
+                  <span style={{ color: "#22d3ee", fontSize: 13, fontWeight: 700 }}>{milestoneStats.avgProgress || 0}%</span>
+                </div>
+                <div style={{ height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{ width: `${milestoneStats.avgProgress || 0}%`, height: "100%", background: "linear-gradient(90deg, #22d3ee, #10b981)", borderRadius: 99, transition: "width 0.8s ease" }} />
+                </div>
+                <div style={{ display: "flex", gap: 16, marginTop: 10, fontSize: 11, color: "#475569" }}>
+                  {milestoneStats.total > 0 && (
+                    <span>Completion rate: <strong style={{ color: "#34d399" }}>{Math.round(((milestoneStats.completed || 0) / milestoneStats.total) * 100)}%</strong></span>
+                  )}
+                  {milestoneStats.overdueCount > 0 && (
+                    <span style={{ color: "#f87171" }}>⚠️ {milestoneStats.overdueCount} overdue milestone{milestoneStats.overdueCount > 1 ? "s" : ""} need attention</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ color: "#475569", fontSize: 13, textAlign: "center", padding: "24px 0" }}>
+              No milestone data yet. Go to <strong style={{ color: "#22d3ee", cursor: "pointer" }} onClick={() => navigate("/research")}>Research Projects</strong> and seed sample milestones.
+            </div>
+          )}
+        </SectionCard>
+      </div>
+
       {/* AI Strategic Insights */}
       <div style={{ marginBottom: 16 }}>
         <AIInsightsPanel />

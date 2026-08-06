@@ -48,6 +48,13 @@ mongoose.connect(process.env.MONGO_URI)
 app.get("/health", (_req, res) => res.json({ status: "ok", service: "research-service" }));
 app.use("/uploads", express.static(uploadsDir));
 app.use("/projects", require("./routes/researchRouter"));
+app.use("/timeline", require("./routes/timelineRouter"));
+app.use("/milestones", require("./routes/milestoneRouter"));
+app.use("/expenditures", require("./routes/expenditureRouter"));
+app.use("/ethics", require("./routes/ethicsRouter"));
+app.use("/notifications", require("./routes/notificationRouter"));
+app.use("/user-notifications", require("./routes/userNotificationRouter"));
+app.use("/test-notifications", require("./routes/testNotificationRouter"));
 app.use((_req, res) => res.status(404).json({ success: false, message: "Route not found." }));
 
 module.exports = app;

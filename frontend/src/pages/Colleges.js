@@ -3,6 +3,9 @@ import { useAuth } from "../context/AuthContext";
 import { PageHeader, Loader, ErrorMsg } from "../components/ui";
 
 import { getServiceUrl } from "../config/api";
+import TimelineManager from "../components/ui/TimelineManager";
+import MilestoneManager from "../components/ui/MilestoneManager";
+import GanttChart from "../components/ui/GanttChart";
 
 const API = getServiceUrl("college");
 
@@ -11,12 +14,54 @@ export default function Colleges() {
   const [colleges, setColleges] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
+  const [selectedCollege, setSelectedCollege] = useState(null);
+  const [activeView, setActiveView] = useState("list"); // "list", "timeline", "milestones", "gantt"
+  const [timelines, setTimelines] = useState([]);
+  const [milestones, setMilestones] = useState([]);
 
   useEffect(() => {
     fetch(`${API}/colleges`, { headers:{ Authorization:`Bearer ${token}` }})
       .then(r=>r.json()).then(d=>setColleges(d.colleges||[]))
       .catch(e=>setError(e.message)).finally(()=>setLoading(false));
   }, [token]);
+
+  // Load timelines for Gantt chart
+  const loadTimelines = async () => {
+    try {
+      const res = await fetch(`${API}/timeline/all`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTimelines(data || []);
+      }
+    } catch (e) {
+      console.error("Error loading timelines:", e);
+    }
+  };
+
+  // Load milestones for colleges
+  const loadMilestones = async () => {
+    try {
+      const res = await fetch(`${API}/milestones/all`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMilestones(data || []);
+      }
+    } catch (e) {
+      console.error("Error loading milestones:", e);
+    }
+  };
+
+  // Load timeline and milestone data when switching to relevant views
+  useEffect(() => {
+    if (activeView === "gantt" || activeView === "milestones") {
+      loadTimelines();
+      loadMilestones();
+    }
+  }, [activeView, token]);
 
   const handleSeed = async () => {
     await fetch(`${API}/seed`, { method:"POST", headers:{ Authorization:`Bearer ${token}` }});
@@ -58,9 +103,136 @@ export default function Colleges() {
                 ))}
               </div>
             </div>
+            
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => { setSelectedCollege(col); setActiveView("timeline"); }}
+                  style={{
+                    flex: 1,
+                    background: col.color + "20",
+                    border: "1px solid " + col.color + "40",
+                    borderRadius: 8,
+                  padding: "8px 16px",
+                  color: col.color,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "inherit"
+                }}
+              >
+                View Timeline
+              </button>
+                <button
+                  onClick={() => { setSelectedCollege(col); setActiveView("milestones"); }}
+                  style={{
+                    flex: 1,
+                    background: col.color + "20",
+                    border: "1px solid " + col.color + "40",
+                    borderRadius: 8,
+                    padding: "8px 16px",
+                    color: col.color,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontFamily: "inherit"
+                  }}
+                >
+                  Milestones
+                </button>
+                <button
+                  onClick={() => { setSelectedCollege(col); setActiveView("gantt"); }}
+                  style={{
+                    flex: 1,
+                    background: col.color + "20",
+                    border: "1px solid " + col.color + "40",
+                    borderRadius: 8,
+                    padding: "8px 16px",
+                    color: col.color,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontFamily: "inherit"
+                  }}
+                >
+                  Gantt Chart
+                </button>
+              </div>
+            </div>
           </div>
         ))}
       </div>
+
+      {/* Timeline View */}
+      {activeView === "timeline" && selectedCollege && (
+        <div style={{ marginTop: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <button
+              onClick={() => { setActiveView("list"); setSelectedCollege(null); }}
+              style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", fontSize: 14 }}
+            >
+              ← Back to Colleges
+            </button>
+            <h2 style={{ color: "#e2e8f0", fontSize: 20, fontWeight: 700, margin: 0 }}>
+              {selectedCollege.name}
+            </h2>
+          </div>
+          <TimelineManager
+            entityType="college"
+            entityId={selectedCollege._id}
+            entityTitle={selectedCollege.name}
+          />
+        </div>
+      )}
+
+      {/* Milestones View */}
+      {activeView === "milestones" && selectedCollege && (
+        <div style={{ marginTop: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <button
+              onClick={() => { setActiveView("list"); setSelectedCollege(null); }}
+              style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", fontSize: 14 }}
+            >
+              ← Back to Colleges
+            </button>
+            <h2 style={{ color: "#e2e8f0", fontSize: 20, fontWeight: 700, margin: 0 }}>
+              {selectedCollege.name}
+            </h2>
+          </div>
+          <MilestoneManager
+            projectId={selectedCollege._id}
+            entityType="college"
+          />
+        </div>
+      )}
+
+      {/* Gantt Chart View */}
+      {activeView === "gantt" && selectedCollege && (
+        <div style={{ marginTop: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <button
+              onClick={() => { setActiveView("list"); setSelectedCollege(null); }}
+              style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", fontSize: 14 }}
+            >
+              ← Back to Colleges
+            </button>
+            <h2 style={{ color: "#e2e8f0", fontSize: 20, fontWeight: 700, margin: 0 }}>
+              {selectedCollege.name}
+            </h2>
+          </div>
+          <GanttChart
+            projects={[selectedCollege].map(col => ({
+              ...col,
+              title: col.name,
+              startDate: col.established || new Date().toISOString(),
+              endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString()
+            }))}
+            timelines={timelines}
+            milestones={milestones}
+            entityType="college"
+          />
+        </div>
+      )}
     </div>
   );
 }
