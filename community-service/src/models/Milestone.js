@@ -41,6 +41,7 @@ const MilestoneSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  
   dependencies: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Milestone'
@@ -49,6 +50,21 @@ const MilestoneSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  deliverableType: { 
+  type: String, 
+  enum: ["progress_report", "ethics_renewal", "financial_report", "publication", "other"] 
+},
+reviewStatus: { 
+  type: String, 
+  enum: ["pending", "submitted", "late", "approved", "revision_requested"], 
+  default: "pending" 
+},
+submissions: [{
+  version: Number,
+  fileUrl: String,
+  submittedAt: Date,
+  comments: String
+}],
   progress: {
     type: Number,
     min: 0,

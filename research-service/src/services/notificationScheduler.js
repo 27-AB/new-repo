@@ -8,7 +8,23 @@ const {
 // Schedule notification checks
 const startNotificationScheduler = () => {
   console.log('🚀 Starting notification scheduler...');
-  
+
+
+  // research-service/src/services/notificationScheduler.js
+cron.schedule('0 8 * * 1', async () => {
+  console.log('📊 Running Weekly Digest...');
+  const users = await getAllNotificationRecipients();
+  for (const user of users) {
+    const dueThisWeek = await Milestone.find({
+      dueDate: { $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+      status: { $ne: 'completed' }
+      // Filter by projects where user is lead
+    });
+    if (dueThisWeek.length > 0) {
+      await sendEmail(user.email, emailTemplates.weeklyDigest(dueThisWeek));
+    }
+  }
+});
   // Check deadlines every day at 9:00 AM
   cron.schedule('0 9 * * *', async () => {
     console.log('⏰ Running daily deadline check (9:00 AM)');

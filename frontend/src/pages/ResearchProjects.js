@@ -35,7 +35,10 @@ const CENTERS_OF_EXCELLENCE = [
 const EMPTY_FORM = {
   title: "", lead: "", college: "", department: "", status: "active",
   startDate: "", endDate: "", fundingETB: 0, fundingSource: "ASTU Internal",
-  tags: "", summary: "", centerOfExcellence: "None", collaborators: []
+  tags: "", summary: "", centerOfExcellence: "None", collaborators: [],
+  currency: "ETB",
+  dmpUrl: "",
+  consentFormUrl: ""
 };
 
 export default function ResearchProjects() {
@@ -64,8 +67,14 @@ export default function ResearchProjects() {
   const [showForm, setShowForm] = useState(false);
   const [editing,  setEditing]  = useState(null);
   const [saving,   setSaving]   = useState(false);
+  const [showExtensionModal, setShowExtensionModal] = useState(false);
+  const [extensionForm, setExtensionForm] = useState({ newEndDate: "", justification: "" });
+
   const [saveMsg,  setSaveMsg]  = useState("");
-  const [form,     setForm]     = useState(EMPTY_FORM);
+  const [form, setForm] = useState({
+  ...EMPTY_FORM,
+  
+});
   const [allResearchers, setAllResearchers] = useState([]);
   const [attachments, setAttachments] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -304,6 +313,54 @@ export default function ResearchProjects() {
     }
   };
 
+  // --- ADD THIS BLOCK ---
+  const submitExtensionRequest = async () => {
+    if (!extensionForm.newEndDate || !extensionForm.justification) {
+      alert("Please fill in all fields");
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/projects/${selectedProject._id}/extension`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json", 
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify(extensionForm)
+      });
+      if (res.ok) {
+        alert("Extension request submitted successfully!");
+        setShowExtensionModal(false);
+        load(); 
+      } else {
+        const err = await res.json();
+        alert("Error: " + err.message);
+      }
+    } catch (e) {
+      console.error("Extension error:", e);
+    }
+  };
+  // --- END OF BLOCK ---
+
+
+
+  
+const handleTerminate = async (projectId) => {
+  const reason = window.prompt("Enter reason for termination (e.g., Funding Lapsed, Non-compliance):");
+  if (!reason) return;
+
+  await fetch(`${API}/projects/${projectId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ status: "terminated", terminationReason: reason })
+  });
+  load(); // Refresh list
+};
+
+// In the Actions column:
+{user.role === 'admin' && p.status !== 'terminated' && (
+  <Btn small variant="danger" onClick={() => handleTerminate(p._id)}>Terminate</Btn>
+)}
   // Load timeline and milestone data when switching to relevant views
   useEffect(() => {
     if (activeView === "gantt" || activeView === "milestones") {
@@ -516,19 +573,28 @@ export default function ResearchProjects() {
                           )}
                         </td>
                         <td style={{ padding: "10px 12px" }}>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {/* These buttons are for everyone (except maybe Funders if you want, but usually Viewers see them) */}
                             <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("timeline"); }}>Timeline</Btn>
                             <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("milestones"); }}>Milestones</Btn>
-                            
-                            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("social"); }}>💬 Social & Links</Btn>
-    
-    
-                            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setShowBudget(true); }}>💰 Budget</Btn>
-                            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setShowEthics(true); }}>🛡️ Ethics</Btn>
-                             <Btn small variant="secondary" onClick={() => { setActiveTab("gantt_chart"); }}>📊 Gantt</Btn>
+                            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("social"); }}>💬 Social</Btn>
+
+                            {/* 1. EXTENSION BUTTON: Use your exact logic so only Owners/Collabs/Admins can see it */}
+                            {(user?.role === "admin" || p.createdBy === user?.id || (p.collaborators && p.collaborators.some(c => c.userId === user?.id))) && (
+                              <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setShowExtensionModal(true); }}>⏳ Extend</Btn>
+                            )}
+
+                            {/* 2. EDIT BUTTON: Keep your existing logic here */}
                             {(user?.role === "admin" || p.createdBy === user?.id || (p.collaborators && p.collaborators.some(c => c.userId === user?.id))) && (
                               <Btn small onClick={() => { setEditing(p); setForm({ ...p, collaborators: p.collaborators || [] }); setAttachments([]); setShowForm(true); }}>Edit</Btn>
                             )}
+
+                            {/* 3. TERMINATE BUTTON: Only Admins can Terminate (Matches your Delete logic) */}
+                            {user?.role === "admin" && p.status !== 'terminated' && (
+                              <Btn small variant="danger" onClick={() => handleTerminate(p._id)}>Terminate</Btn>
+                            )}
+
+                            {/* 4. DELETE BUTTON: Keep your existing Admin-only logic */}
                             {user?.role === "admin" && (
                               <Btn small variant="danger" onClick={() => handleDelete(p._id)}>Delete</Btn>
                             )}
@@ -726,6 +792,7 @@ export default function ResearchProjects() {
 
             <form onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
 
+
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={labelStyle}>Project Title *</label>
                 <input required value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={inputStyle} placeholder="e.g. AI-Powered Crop Disease Detection" />
@@ -743,6 +810,27 @@ export default function ResearchProjects() {
                   {COLLEGES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
+              {/* Currency and Budget Row */}
+<div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 14 }}>
+  <div>
+    <label style={labelStyle}>Currency</label>
+    <select value={form.currency} onChange={e => setForm({...form, currency: e.target.value})} style={inputStyle}>
+      <option value="ETB">ETB (Birr)</option>
+      <option value="USD">USD ($)</option>
+      <option value="EUR">EUR (€)</option>
+    </select>
+  </div>
+  <div>
+    <label style={labelStyle}>Funding Allocation</label>
+    <input type="number" value={form.fundingETB} onChange={e => setForm({...form, fundingETB: e.target.value})} style={inputStyle} />
+  </div>
+</div>
+
+{/* Document Links */}
+<div style={{ gridColumn: "1/-1" }}>
+  <label style={labelStyle}>Data Management Plan (Link)</label>
+  <input value={form.dmpUrl} onChange={e => setForm({...form, dmpUrl: e.target.value})} style={inputStyle} placeholder="https://..." />
+</div>
 
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={labelStyle}>Center of Excellence Partnership</label>
@@ -968,6 +1056,38 @@ export default function ResearchProjects() {
       {showNotifications && (
         <NotificationCenter onClose={() => setShowNotifications(false)} />
       )}
+      {/* Extension Request Modal */}
+{showExtensionModal && (
+  <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+    <div style={{ background: "#162030", borderRadius: 16, padding: 32, width: "100%", maxWidth: 500, border: "1px solid rgba(255,255,255,0.1)" }}>
+      <h2 style={{ color: "#e2e8f0", fontSize: 18, fontWeight: 700, marginTop: 0, marginBottom: 20 }}>⏳ Request Project Extension</h2>
+      
+      <div style={{ marginBottom: 16 }}>
+        <label style={labelStyle}>Proposed New End Date</label>
+        <input 
+          type="date" 
+          style={inputStyle}
+          onChange={e => setExtensionForm({...extensionForm, newEndDate: e.target.value})} 
+        />
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <label style={labelStyle}>Justification / Reason</label>
+        <textarea 
+          style={{ ...inputStyle, height: 100, resize: "none" }}
+          placeholder="Explain why you need more time..."
+          onChange={e => setExtensionForm({...extensionForm, justification: e.target.value})} 
+        />
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+        <Btn variant="secondary" onClick={() => setShowExtensionModal(false)}>Cancel</Btn>
+        <Btn onClick={submitExtensionRequest}>Submit Request</Btn>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

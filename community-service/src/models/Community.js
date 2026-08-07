@@ -4,7 +4,16 @@ const communitySchema = new mongoose.Schema({
   title:        { type: String, required: true, trim: true },
   lead:         { type: String, required: true },
   college:      { type: String, required: true },
-  status:       { type: String, enum: ["active", "paused", "completed", "planned"], default: "active" },
+  status:       { type: String, enum: ["active", "paused", "completed", "planned",  "extended", "terminated"], default: "active" },
+  currency:     { type: String, default: "ETB" }, 
+  terminationReason: { type: String, default: "" }, 
+  dmpUrl:       { type: String, default: "" }, 
+  consentFormUrl: { type: String, default: "" }, 
+  disbursementSchedule: [{
+    amount: Number,
+    date: Date,
+    status: { type: String, enum: ['scheduled', 'received'], default: 'scheduled' }
+  }],
   startDate:    { type: String, required: true },
   endDate:      { type: String },
   budgetETB:    { type: Number, default: 0 },

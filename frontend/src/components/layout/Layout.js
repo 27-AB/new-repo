@@ -25,6 +25,13 @@ function LayoutContent({ children }) {
   const [notifications, setNotifications] = useState([]);
 
   const handleLogout = () => { logout(); navigate("/login"); };
+  const filteredNav = NAV.filter(item => {
+    if (user?.role === 'funder') {
+      // Hides 'Settings' and 'Funding & Grants' from users with the "funder" role
+      return !['Settings', 'Funding & Grants'].includes(item.label);
+    }
+    return true;
+  });
 
   // Fetch unread notifications when user is logged in
   useEffect(() => {
@@ -118,7 +125,7 @@ function LayoutContent({ children }) {
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: "12px 10px", overflowY: "auto" }}>
-          {NAV.map(({ to, icon, label }) => (
+          {filteredNav.map(({ to, icon, label }) => (
             <NavLink key={to} to={to} end={to === "/"}
               style={({ isActive }) => ({
                 display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",

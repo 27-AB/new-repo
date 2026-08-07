@@ -50,7 +50,9 @@ export default function CommunityProjects() {
   
   const [showForm, setShowForm] = useState(false);
   const [editing,  setEditing]  = useState(null);
-  const [form,     setForm]     = useState({ title:"", lead:"", college:"", location:"Adama", status:"active", startDate:"", endDate:"", budgetETB:0, beneficiaries:0, volunteers:0, tags:"", summary:"", impact:"", collaborators:[], department:"", centerOfExcellence:"None", fundingSource:"ASTU Internal", publications:0, teamSize:1, externalLink:"" });
+  const [form,     setForm]     = useState({ title:"", lead:"", college:"", location:"Adama", status:"active", startDate:"", endDate:"", budgetETB:0, beneficiaries:0, volunteers:0, tags:"", summary:"", impact:"", collaborators:[], department:"", centerOfExcellence:"None", fundingSource:"ASTU Internal", publications:0, teamSize:1, externalLink:"", currency: "ETB",
+  dmpUrl: "",
+  consentFormUrl: "" });
   const [allResearchers, setAllResearchers] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [activeView, setActiveView] = useState("table_view"); // "table_view", "timeline", "milestones", "gantt", "social"
@@ -490,6 +492,52 @@ export default function CommunityProjects() {
           <div style={{ background:"#162030", borderRadius:16, padding:32, width:"100%", maxWidth:600, border:"1px solid rgba(255,255,255,0.1)", maxHeight:"90vh", overflowY:"auto" }}>
             <h2 style={{ color:"#e2e8f0", fontSize:18, fontWeight:700, marginBottom:24 }}>{editing?"Edit":"Add"} Community Project</h2>
             <form onSubmit={handleSubmit} style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+              {/* Currency and Budget Row - Spans full width */}
+  <div style={{ gridColumn: "1/-1", display: "grid", gridTemplateColumns: "1fr 2fr", gap: 14 }}>
+    <div>
+      <label style={labelStyle}>Currency</label>
+      <select 
+        value={form.currency} 
+        onChange={e => setForm({...form, currency: e.target.value})} 
+        style={inputStyle}
+      >
+        <option value="ETB">ETB (Birr)</option>
+        <option value="USD">USD ($)</option>
+        <option value="EUR">EUR (€)</option>
+      </select>
+    </div>
+    <div>
+      <label style={labelStyle}>Total Budget Amount</label>
+      <input 
+        type="number" 
+        value={form.budgetETB} 
+        onChange={e => setForm({...form, budgetETB: e.target.value})} 
+        style={inputStyle} 
+        placeholder="Enter amount"
+      />
+    </div>
+  </div>
+
+  {/* Document Links - Spans full width */}
+  <div style={{ gridColumn: "1/-1" }}>
+    <label style={labelStyle}>Data Management Plan (Link)</label>
+    <input 
+      value={form.dmpUrl} 
+      onChange={e => setForm({...form, dmpUrl: e.target.value})} 
+      style={inputStyle} 
+      placeholder="https://link-to-your-dmp-document.com" 
+    />
+  </div>
+
+  <div style={{ gridColumn: "1/-1" }}>
+    <label style={labelStyle}>Ethics Consent Form (Link)</label>
+    <input 
+      value={form.consentFormUrl} 
+      onChange={e => setForm({...form, consentFormUrl: e.target.value})} 
+      style={inputStyle} 
+      placeholder="https://link-to-consent-form.com" 
+    />
+  </div>
                {/* Form inputs would go here... (Keeping existing form logic) */}
                <div style={{ gridColumn:"1/-1", display:"flex", justifyContent:"flex-end", gap:10 }}>
                 <Btn variant="secondary" onClick={()=>{setShowForm(false);setEditing(null);}}>Cancel</Btn>

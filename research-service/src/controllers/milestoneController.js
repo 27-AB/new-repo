@@ -318,3 +318,33 @@ exports.seedMilestones = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+// Add this at the end of milestoneController.js in research-service
+exports.requestRevision = async (req, res) => {
+  try {
+    const { id } = req.params; // We get the ID from the URL
+    const { comment } = req.body;
+
+    const milestone = await Milestone.findByIdAndUpdate(
+      id,
+      {
+        reviewStatus: "revision_requested",
+        // This adds the admin's comment to the milestone's general description 
+        // or a specific comments field if you prefer.
+        $push: { "submissions.0.comments": comment } 
+      },
+      { new: true }
+    );
+
+    if (!milestone) {
+      return res.status(404).json({ success: false, message: "Milestone not found" });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Revision requested. Researcher will be notified.",
+      milestone 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
