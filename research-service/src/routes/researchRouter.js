@@ -43,6 +43,19 @@ router.post("/",       protect, requireRole("admin", "researcher"), upload.array
 router.put("/:id",     protect, requireRole("admin", "researcher"), upload.array("attachments", 5), c.update);
 router.delete("/:id",  protect, requireRole("admin"), c.remove);
 
+// Add this near your other routes
+router.post('/:id/extension', protect, requireRole('admin', 'researcher'), async (req, res) => {
+  // Simple logic to create the request
+  const ExtensionRequest = require('../models/ExtensionRequest');
+  try {
+    const request = await ExtensionRequest.create({
+      projectId: req.params.id,
+      ...req.body,
+      requestedBy: req.user.id
+    });
+    res.json({ success: true, request });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
 // Collaborator management routes
 router.post("/:id/collaborators",       protect, requireRole("admin", "researcher"), c.addCollaborator);
 router.put("/:id/collaborators",        protect, requireRole("admin", "researcher"), c.updateCollaborator);

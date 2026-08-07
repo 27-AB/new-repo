@@ -46,7 +46,7 @@ mongoose.connect(process.env.MONGO_URI, {
 })
   .then(() => console.log("Research-service connected to MongoDB"))
   .catch(err => console.error("MongoDB error:", err.message));
-
+app.use("/calendar", require("./routes/calendarRouter"));
 app.get("/health", (_req, res) => res.json({ status: "ok", service: "research-service" }));
 app.use("/uploads", express.static(uploadsDir));
 app.use("/projects", require("./routes/researchRouter"));

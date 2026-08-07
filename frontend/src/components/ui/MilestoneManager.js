@@ -450,6 +450,39 @@ const MilestoneManager = ({ projectId, entityType = 'research' }) => {
                       )}
                     </div>
 
+                                <div style={{ marginTop: 8 }}>
+                      <span style={{ 
+                        fontSize: 10, padding: '2px 8px', borderRadius: 4, 
+                        background: m.reviewStatus === 'approved' ? '#10b98120' : '#f59e0b20',
+                        color: m.reviewStatus === 'approved' ? '#10b981' : '#f59e0b',
+                        fontWeight: 'bold', border: `1px solid ${m.reviewStatus === 'approved' ? '#10b98140' : '#f59e0b40'}`
+                      }}>
+                        REVIEW: {m.reviewStatus?.replace('_', ' ').toUpperCase() || 'PENDING'}
+                      </span>
+                    </div>
+
+                    {/* 2. Admin Review Action Buttons */}
+                    {user?.role === 'admin' && m.reviewStatus === 'submitted' && (
+                      <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                        <button 
+                          onClick={() => handleComplete(m._id)}
+                          style={{ background: '#10b981', color: '#0d1b2a', border: 'none', padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                        >Approve Report</button>
+                        
+                        <button 
+                          onClick={() => {
+                            const msg = window.prompt("Enter revision comments for the researcher:");
+                            if(msg) fetch(`${apiBase}/${m._id}/request-revision`, {
+                              method: 'POST',
+                              headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`},
+                              body: JSON.stringify({ comment: msg })
+                            }).then(() => load());
+                          }}
+                          style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444', border: '1px solid #ef4444', padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                        >Request Revision</button>
+                      </div>
+                    )}
+
                     {/* Progress bar */}
                     {m.progress > 0 && m.status !== 'completed' && (
                       <div style={{ marginTop: 12 }}>

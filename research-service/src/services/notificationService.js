@@ -217,7 +217,29 @@ const emailTemplates = {
       </div>
     `
   }),
-
+ // Add this inside the emailTemplates object
+  weeklyDigest: (milestones) => ({
+    subject: "📊 ASTU Weekly Project Digest",
+    html: `
+      <div style="font-family: Arial; padding: 20px;">
+        <h2>Your Weekly Project Summary</h2>
+        <p>The following milestones are due within the next 7 days:</p>
+        <table border="1" style="border-collapse: collapse; width: 100%;">
+          <tr style="background: #f0f0f0;">
+            <th style="padding: 8px;">Milestone</th>
+            <th style="padding: 8px;">Due Date</th>
+          </tr>
+          ${milestones.map(m => `
+            <tr>
+              <td style="padding: 8px;">${m.title}</td>
+              <td style="padding: 8px;">${new Date(m.dueDate).toLocaleDateString()}</td>
+            </tr>
+          `).join('')}
+        </table>
+        <p>Please log in to the portal to update your progress.</p>
+      </div>
+    `
+  }),
   ethicsExpiring: (project, daysUntil) => ({
     subject: `🛡️ Ethics Approval Expiring Soon: ${project.title} - ${daysUntil} days remaining`,
     html: `

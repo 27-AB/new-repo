@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+
 const {
   createMilestone,
   getProjectMilestones,
@@ -21,6 +22,7 @@ const {
 // POST /milestones - Create a new milestone
 router.post('/', createMilestone);
 
+router.post('/:id/request-revision', protect, requireRole('admin'), c.requestRevision);
 // GET /milestones - Get all milestones across all projects
 router.get('/all', getAllMilestones);
 
