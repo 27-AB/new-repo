@@ -482,6 +482,22 @@ const MilestoneManager = ({ projectId, entityType = 'research' }) => {
                         >Request Revision</button>
                       </div>
                     )}
+                    {/* 3. Researcher Submission Button */}
+                      {user?.role === 'researcher' && (m.reviewStatus === 'pending' || m.reviewStatus === 'revision_requested') && (
+                        <div style={{ marginTop: 10 }}>
+                          <Btn small onClick={() => {
+                            const url = window.prompt("Paste the link to your report (Google Drive/Dropbox):");
+                            const notes = window.prompt("Add any notes for the reviewer:");
+                            if(url) fetch(`${apiBase}/${m._id}/submit`, {
+                              method: 'POST',
+                              headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`},
+                              body: JSON.stringify({ fileUrl: url, notes: notes })
+                            }).then(() => load());
+                          }}>
+                            📤 Submit Report
+                          </Btn>
+                        </div>
+                      )}
 
                     {/* Progress bar */}
                     {m.progress > 0 && m.status !== 'completed' && (

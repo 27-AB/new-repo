@@ -348,3 +348,35 @@ exports.requestRevision = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+exports.submitMilestoneReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fileUrl, notes } = req.body;
+
+    const milestone = await Milestone.findById(id);
+    
+    // Increment version based on existing submissions
+    const nextVersion = (milestone.submissions?.length || 0) + 1;
+
+    const updatedMilestone = await Milestone.findByIdAndUpdate(
+      id,
+      {
+        reviewStatus: "submitted",
+        status: "in-progress",
+        $push: { 
+          submissions: { 
+            version: nextVersion, 
+            fileUrl: fileUrl, 
+            comments: notes,
+            submittedAt: new Date() 
+          } 
+        }
+      },
+      { new: true }
+    );
+
+    res.json({ success: true, message: "Report submitted for review", milestone: updatedMilestone });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

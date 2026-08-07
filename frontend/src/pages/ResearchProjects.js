@@ -548,7 +548,21 @@ const handleTerminate = async (projectId) => {
                             <div style={{ color: "#22d3ee", fontSize: 10, marginTop: 2, fontWeight: 600 }}>🏛️ {p.centerOfExcellence.replace("Center of Excellence for ", "").split(" (")[0]}</div>
                           )}
                         </td>
-                        <td style={{ padding: "10px 12px" }}><Badge status={p.status} /></td>
+                        <td style={{ padding: "10px 12px" }}><Badge status={p.status} />
+                        {/* NEW: Show the reason ONLY if project is terminated */}
+                        {p.status === 'terminated' && p.terminationReason && (
+                          <div style={{ 
+                            color: "#ef4444", 
+                            fontSize: "10px", 
+                            marginTop: 4, 
+                            fontStyle: "italic",
+                            maxWidth: "120px",
+                            lineHeight: "1.2"
+                          }}>
+                            Reason: {p.terminationReason}
+                          </div>
+                        )}
+                        </td>
                         <td style={{ padding: "10px 12px", color: "#f59e0b", fontFamily: "monospace", fontSize: 12 }}>{(p.fundingETB || 0).toLocaleString()}</td>
                         <td style={{ padding: "10px 12px", color: "#64748b", fontSize: 12, fontFamily: "monospace" }}>
                           <div>{p.startDate}</div>

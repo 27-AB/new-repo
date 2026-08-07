@@ -100,6 +100,37 @@ export default function CommunityProjects() {
     await fetch(`${API}/community-projects/${id}`, { method:"DELETE", headers:{ Authorization:`Bearer ${token}` }});
     load();
   };
+  // Logic for Extension Requests
+  const submitExtensionRequest = async () => {
+    if (!extensionForm.newEndDate || !extensionForm.justification) {
+      alert("Please fill in all fields");
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/community-projects/${selectedProject._id}/extension`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(extensionForm)
+      });
+      if (res.ok) {
+        alert("Extension request submitted successfully!");
+        setShowExtensionModal(false);
+        load(); 
+      }
+    } catch (e) { console.error("Extension error:", e); }
+  };
+
+  // Logic for Termination
+  const handleTerminate = async (projectId) => {
+    const reason = window.prompt("Enter reason for termination (e.g., Budget Exhausted, Project Abandoned):");
+    if (!reason) return;
+    await fetch(`${API}/community-projects/${projectId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status: "terminated", terminationReason: reason })
+    });
+    load(); 
+  };
 
   // Load timelines for Gantt chart
   const loadTimelines = async () => {
@@ -339,21 +370,43 @@ export default function CommunityProjects() {
                           </td>
                           <td style={{ padding:"10px 12px", color:"#34d399", fontWeight:600 }}>{(p.beneficiaries||0).toLocaleString()}</td>
                           <td style={{ padding:"10px 12px", color:"#f59e0b", fontSize:12, fontFamily:"monospace" }}>{fmtETB(p.budgetETB||0)}</td>
-                          <td style={{ padding:"10px 12px" }}><Badge status={p.status} /></td>
+                          <td style={{ padding:"10px 12px" }}><Badge status={p.status} />
+                          {/* NEW: Show the reason ONLY if project is terminated */}
+                          {p.status === 'terminated' && p.terminationReason && (
+                            <div style={{ 
+                              color: "#ef4444", 
+                              fontSize: "10px", 
+                              marginTop: 4, 
+                              fontStyle: "italic",
+                              maxWidth: "120px",
+                              lineHeight: "1.2"
+                            }}>
+                              Reason: {p.terminationReason}
+                            </div>
+                          )}
+                                                  </td>
                           <td style={{ padding:"10px 12px" }}>
                             {(user?.role==="admin"||user?.role==="researcher") && (
                               <div style={{ display:"flex", gap:6, flexWrap: "wrap" }}>
                                 <Btn small variant="secondary" onClick={()=>{ setSelectedProject(p); setActiveView("timeline"); }}>Timeline</Btn>
                                 <Btn small variant="secondary" onClick={()=>{ setSelectedProject(p); setActiveView("milestones"); }}>Milestones</Btn>
+                                {(user?.role === "admin" || p.createdBy === user?.id) && (
+                                <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setShowExtensionModal(true); }}>⏳ Extend</Btn>
+                                   )}
                                 
                                 {/* 💬 SOCIAL HUB BUTTON ADDED HERE */}
                                 <Btn small variant="secondary" onClick={()=>{ setSelectedProject(p); setActiveView("social"); }}>💬 Social</Btn>
+
                                 
                                 <Btn small variant="secondary" onClick={()=>{ setSelectedProject(p); setActiveView("gantt"); }}>Gantt</Btn>
                                 <Btn small variant="secondary" onClick={()=>{ setSelectedProject(p); setShowBudget(true); }}>💰 Budget</Btn>
                                 <Btn small variant="secondary" onClick={()=>{ setSelectedProject(p); setShowEthics(true); }}>🛡️ Ethics</Btn>
                                 {(user?.role==="admin" || p.createdBy === user?.id || (p.collaborators && p.collaborators.some(c => typeof c === 'object' ? c.userId === user?.id : c === user?.id))) && (
                                   <Btn small variant="secondary" onClick={()=>openEdit(p)}>Edit</Btn>
+                                )}
+                                {/* NEW: Terminate Button */}
+                                {user?.role === "admin" && p.status !== 'terminated' && (
+                                  <Btn small variant="danger" onClick={() => handleTerminate(p._id)}>Terminate</Btn>
                                 )}
                                 {user?.role==="admin" && <Btn small variant="danger" onClick={()=>handleDelete(p._id)}>Del</Btn>}
                               </div>
@@ -559,6 +612,27 @@ export default function CommunityProjects() {
       {showNotifications && (
         <NotificationCenter onClose={() => setShowNotifications(false)} serviceType="community" />
       )}
+
+    {/* Extension Request Modal */}
+    {showExtensionModal && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+        <div style={{ background: "#162030", borderRadius: 16, padding: 32, width: "100%", maxWidth: 500, border: "1px solid rgba(255,255,255,0.1)" }}>
+          <h2 style={{ color: "#e2e8f0", fontSize: 18, fontWeight: 700, marginTop: 0, marginBottom: 20 }}>⏳ Request Project Extension</h2>
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>Proposed New End Date</label>
+            <input type="date" style={inputStyle} onChange={e => setExtensionForm({...extensionForm, newEndDate: e.target.value})} />
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <label style={labelStyle}>Justification</label>
+            <textarea style={{ ...inputStyle, height: 100, resize: "none" }} placeholder="Why is more time needed?" onChange={e => setExtensionForm({...extensionForm, justification: e.target.value})} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+            <Btn variant="secondary" onClick={() => setShowExtensionModal(false)}>Cancel</Btn>
+            <Btn onClick={submitExtensionRequest}>Submit Request</Btn>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
