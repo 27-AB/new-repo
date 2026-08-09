@@ -5,6 +5,7 @@ const communitySchema = new mongoose.Schema({
   lead:         { type: String, required: true },
   college:      { type: String, required: true },
   status:       { type: String, enum: ["active", "paused", "completed", "planned",  "extended", "terminated"], default: "active" },
+  progressStage: { type: String, enum: ["Q1", "Q2", "Q3", "Q4", "H1", "H2", "Terminal"], default: "Q1" },
   currency:     { type: String, default: "ETB" }, 
   terminationReason: { type: String, default: "" }, 
   dmpUrl:       { type: String, default: "" }, 

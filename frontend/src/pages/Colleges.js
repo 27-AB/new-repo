@@ -33,7 +33,7 @@ export default function Colleges() {
       });
       if (res.ok) {
         const data = await res.json();
-        setTimelines(data || []);
+        setTimelines(Array.isArray(data.timelineItems) ? data.timelineItems : Array.isArray(data) ? data : []);
       }
     } catch (e) {
       console.error("Error loading timelines:", e);

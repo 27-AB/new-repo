@@ -372,14 +372,14 @@ const createAndSendNotificationToAll = async (project, options) => {
 const createAndSendNotification = async (project, options) => {
   const { type, title, message, priority, milestone, daysUntil, template } = options;
   
-  // Get project lead user info
-  const researcher = await getResearcherUser(project.lead);
+  // Prefer the reliable userId reference; fall back to name matching only if createdBy is missing
+  const researcher = (await getResearcherUserById(project.createdBy)) 
+    || (await getResearcherUser(project.lead));
   
   if (!researcher) {
-    console.log(`⚠️ No notification email set for ${project.lead}`);
+    console.log(`⚠️ No notification email set for project "${project.title}" (lead: ${project.lead})`);
     return null;
   }
-  
   // Prepare notification data
   const notificationData = {
     userId: researcher.userId,

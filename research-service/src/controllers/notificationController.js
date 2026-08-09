@@ -11,7 +11,7 @@ const {
 exports.sendTest = async (req, res) => {
   try {
     const { email } = req.body;
-    const to = email || process.env.ALERT_EMAIL || 'abrahamgebreyohannes12@gmail.com';
+    const to = email || process.env.ALERT_EMAIL;
     
     const result = await sendTestEmail(to);
     
@@ -120,7 +120,7 @@ exports.getSettings = async (req, res) => {
       success: true,
       settings: {
         emailEnabled: !!process.env.EMAIL_USER,
-        alertEmail: process.env.ALERT_EMAIL || 'abrahamgebreyohannes12@gmail.com',
+        alertEmail: process.env.ALERT_EMAIL,
         schedules: {
           deadlineCheck: '9:00 AM daily',
           overdueCheck: '10:00 AM daily',

@@ -51,6 +51,26 @@ const getResearcherUser = async (projectLeadName) => {
   }
 };
 
+// Get researcher user info by their real user ID (reliable — no name matching)
+const getResearcherUserById = async (userId) => {
+  if (!userId) return null;
+  try {
+    const User = mongoose.connection.db.collection('users');
+    const user = await User.findOne({ _id: new mongoose.Types.ObjectId(userId) });
+
+    if (user && user.receiveNotifications && (user.notificationEmail || user.email)) {
+      return {
+        userId: user._id,
+        name: user.name,
+        email: user.notificationEmail || user.email
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching researcher user by ID:', error.message);
+    return null;
+  }
+};
 // Save notification to database
 const saveNotification = async (notificationData) => {
   try {
@@ -67,7 +87,7 @@ const saveNotification = async (notificationData) => {
 // Email transporter configuration
 const createTransporter = () => {
   // Using Gmail SMTP (you can change to any email service)
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     service: 'gmail',
     auth: {
       user: process.env.EMAIL_USER || 'your-email@gmail.com',
@@ -350,11 +370,12 @@ const createAndSendNotificationToAll = async (project, options) => {
 const createAndSendNotification = async (project, options) => {
   const { type, title, message, priority, milestone, daysUntil, template } = options;
   
-  // Get project lead user info
-  const researcher = await getResearcherUser(project.lead);
+  // Prefer the reliable userId reference; fall back to name matching only if createdBy is missing
+  const researcher = (await getResearcherUserById(project.createdBy)) 
+    || (await getResearcherUser(project.lead));
   
   if (!researcher) {
-    console.log(`⚠️ No notification email set for ${project.lead}`);
+    console.log(`⚠️ No notification email set for project "${project.title}" (lead: ${project.lead})`);
     return null;
   }
   

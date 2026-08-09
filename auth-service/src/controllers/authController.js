@@ -1,3 +1,4 @@
+// auth-service/src/controllers/authController.js
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
@@ -72,8 +73,10 @@ exports.getUsers = async (req, res) => {
 exports.updateRole = async (req, res) => {
   try {
     const { role } = req.body;
-    if (!["admin", "researcher", "viewer"].includes(role))
-      return res.status(400).json({ success: false, message: "Invalid role. Must be admin, researcher, or viewer." });
+    // Validate against the model's VALID_ROLES
+    const valid = User.VALID_ROLES || ["admin","pi","co_researcher","reviewer","funder","researcher","viewer"];
+    if (!valid.includes(role))
+      return res.status(400).json({ success: false, message: `Invalid role. Must be one of: ${valid.join(", ")}` });
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { role },
@@ -89,9 +92,10 @@ exports.updateRole = async (req, res) => {
 // GET /auth/researchers  — get all researchers for collaborator selection
 exports.getResearchers = async (req, res) => {
   try {
-    // Return all users with role researcher or admin (both can be collaborators)
+    // Return users who can be collaborators: pi, co_researcher, researcher, admin
+    const roleCandidates = ["pi", "co_researcher", "researcher", "admin"];
     const researchers = await User.find({ 
-      role: { $in: ["researcher", "admin"] },
+      role: { $in: roleCandidates },
       isActive: true 
     }).select("-password").sort({ name: 1 });
     res.json({ success: true, researchers });
@@ -125,7 +129,12 @@ exports.updateProfile = async (req, res) => {
       const bcrypt = require("bcryptjs");
       updateData.password = await bcrypt.hash(password, 10);
     }
-    if (role) updateData.role = role;
+    // Disallow role escalation via /me endpoint: only admins change roles
+    if (role) {
+      // ignore or reject; safer to ignore silently
+      // Alternatively return 403 if role present:
+      return res.status(403).json({ success: false, message: "Role change not allowed via profile. Admins only." });
+    }
     
     // Check if email is being changed and if it's already taken by another user
     if (email && email !== req.user.email) {
@@ -169,7 +178,11 @@ exports.updateUserProfile = async (req, res) => {
       const bcrypt = require("bcryptjs");
       updateData.password = await bcrypt.hash(password, 10);
     }
-    if (role) updateData.role = role;
+    if (role) {
+      const valid = User.VALID_ROLES || ["admin","pi","co_researcher","reviewer","funder","researcher","viewer"];
+      if (!valid.includes(role)) return res.status(400).json({ success: false, message: "Invalid role." });
+      updateData.role = role;
+    }
     if (isActive !== undefined) updateData.isActive = isActive;
     
     // Check if email is being changed and if it's already taken by another user
@@ -193,41 +206,29 @@ exports.updateUserProfile = async (req, res) => {
   }
 };
 
-// POST /auth/seed  — creates default admin + demo accounts with official ASTU colleges
+// POST /auth/seed  — creates default admin + demo accounts
 exports.seed = async (req, res) => {
   try {
-    // Delete all seed accounts to force updates if they exist
+    // Delete known seed accounts to force updates if they exist
     const seedEmails = [
-      "admin@astu.edu.et", "researcher@astu.edu.et", "viewer@astu.edu.et",
-      "tesfaye.worku@astu.edu.et", "almaz.tadesse@astu.edu.et", "biruk.hailu@astu.edu.et",
-      "yonas.girma@astu.edu.et", "mekdes.bekele@astu.edu.et", "solomon.bekele@astu.edu.et",
-      "hana.tesfaye@astu.edu.et", "getachew.mengistu@astu.edu.et", "robel.tadesse@astu.edu.et",
-      "chaltu.wakjira@astu.edu.et", "fikirte.haile@astu.edu.et", "dawit.asfaw@astu.edu.et",
-      "selamawit.girma@astu.edu.et", "tesfaye.demissie@astu.edu.et"
+      "admin@astu.edu.et", "pi@astu.edu.et", "coresearcher@astu.edu.et", "reviewer@astu.edu.et", "funder@astu.edu.et",
+      "researcher@astu.edu.et", "viewer@astu.edu.et"
     ];
     await User.deleteMany({ email: { $in: seedEmails } });
 
     await User.create([
-      { name: "Abebe Kebede", email: "admin@astu.edu.et", password: "admin1234", role: "admin", college: "Administration" },
-      { name: "Dr. Tigist Alemu", email: "researcher@astu.edu.et", password: "research1234", role: "researcher", college: "College of Electrical Engineering & Computing" },
-      { name: "Dawit Haile", email: "viewer@astu.edu.et", password: "viewer1234", role: "viewer", college: "College of Applied Natural Science" },
-      // Add 14 researchers from college-service
-      { name: "Dr. Tesfaye Worku", email: "tesfaye.worku@astu.edu.et", password: "research1234", role: "researcher", college: "College of Electrical Engineering & Computing" },
-      { name: "Prof. Almaz Tadesse", email: "almaz.tadesse@astu.edu.et", password: "research1234", role: "researcher", college: "College of Mechanical, Chemical & Materials Engineering" },
-      { name: "Dr. Biruk Hailu", email: "biruk.hailu@astu.edu.et", password: "research1234", role: "researcher", college: "College of Civil Engineering and Architecture" },
-      { name: "Dr. Yonas Girma", email: "yonas.girma@astu.edu.et", password: "research1234", role: "researcher", college: "College of Electrical Engineering & Computing" },
-      { name: "Prof. Mekdes Bekele", email: "mekdes.bekele@astu.edu.et", password: "research1234", role: "researcher", college: "College of Applied Natural Science" },
-      { name: "Dr. Solomon Bekele", email: "solomon.bekele@astu.edu.et", password: "research1234", role: "researcher", college: "College of Electrical Engineering & Computing" },
-      { name: "Dr. Hana Tesfaye", email: "hana.tesfaye@astu.edu.et", password: "research1234", role: "researcher", college: "College of Electrical Engineering & Computing" },
-      { name: "Prof. Getachew Mengistu", email: "getachew.mengistu@astu.edu.et", password: "research1234", role: "researcher", college: "College of Applied Natural Science" },
-      { name: "Dr. Robel Tadesse", email: "robel.tadesse@astu.edu.et", password: "research1234", role: "researcher", college: "College of Electrical Engineering & Computing" },
-      { name: "Dr. Chaltu Wakjira", email: "chaltu.wakjira@astu.edu.et", password: "research1234", role: "researcher", college: "College of Applied Natural Science" },
-      { name: "Dr. Fikirte Haile", email: "fikirte.haile@astu.edu.et", password: "research1234", role: "researcher", college: "College of Applied Natural Science" },
-      { name: "Prof. Dawit Asfaw", email: "dawit.asfaw@astu.edu.et", password: "research1234", role: "researcher", college: "College of Mechanical, Chemical & Materials Engineering" },
-      { name: "Dr. Selamawit Girma", email: "selamawit.girma@astu.edu.et", password: "research1234", role: "researcher", college: "College of Humanities and Social Science" },
-      { name: "Prof. Tesfaye Demissie", email: "tesfaye.demissie@astu.edu.et", password: "research1234", role: "researcher", college: "College of Humanities and Social Science" },
+      // Minimal safe demo accounts (DEMO passwords)
+      { name: "Demo Admin", email: "admin@astu.edu.et", password: "DEMO-AdminPass123!", role: "admin", college: "Administration" },
+      { name: "Demo PI", email: "pi@astu.edu.et", password: "DEMO-PIPass123!", role: "pi", college: "College of Science" },
+      { name: "Demo Co-researcher", email: "coresearcher@astu.edu.et", password: "DEMO-CoPass123!", role: "co_researcher", college: "College of Science" },
+      { name: "Demo Reviewer", email: "reviewer@astu.edu.et", password: "DEMO-ReviewerPass123!", role: "reviewer", college: "Research Office" },
+      { name: "Demo Funder", email: "funder@astu.edu.et", password: "DEMO-FunderPass123!", role: "funder", college: "External" },
+      // Keep a generic researcher and viewer for compatibility
+      { name: "Demo Researcher", email: "researcher@astu.edu.et", password: "research1234", role: "researcher", college: "College of Engineering" },
+      { name: "Demo Viewer", email: "viewer@astu.edu.et", password: "viewer1234", role: "viewer", college: "Public" },
     ]);
-    res.json({ success: true, message: "Default users seeded successfully with official ASTU colleges and 14 researchers." });
+
+    res.json({ success: true, message: "Demo users seeded successfully (DEMO credentials)." });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

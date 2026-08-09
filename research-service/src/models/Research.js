@@ -1,3 +1,4 @@
+// research-service/src/models/Research.js
 const mongoose = require("mongoose");
 
 const researchSchema = new mongoose.Schema({
@@ -32,7 +33,6 @@ const researchSchema = new mongoose.Schema({
     size: { type: Number },
     uploadDate: { type: Date, default: Date.now }
   }],
-  // --- ADD THE OUTPUTS ARRAY HERE ---
   outputs: [{
     type: { type: String, enum: ['Publication', 'Patent', 'Grant'], default: 'Publication' },
     title: { type: String, trim: true },
@@ -42,10 +42,15 @@ const researchSchema = new mongoose.Schema({
   // Ownership & Collaboration Fields
   createdBy:    { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   createdByName:{ type: String, default: "" },
+  // Existing collaborators array (keeps priority info)
   collaborators:[{ 
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     priority: { type: String, enum: ["high", "medium", "low"], default: "medium" }
   }],
+  // New: explicit PI and assignment fields for RBAC
+  pi:           { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // Principal Investigator user id
+  reviewers:    [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Assigned reviewers
+  funder:       { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // Funder / sponsor user id
   lastModifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   lastModifiedByName: { type: String, default: "" },
   

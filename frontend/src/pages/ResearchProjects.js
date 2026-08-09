@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { Badge, SectionCard, PageHeader, Btn, Loader, ErrorMsg, fmtETB } from "../components/ui";
 
 import { getServiceUrl } from "../config/api";
+import useRoles from "../hooks/useRoles";
 import AICopilotPanel from "../components/ai/AICopilotPanel";
 import TimelineManager from "../components/ui/TimelineManager";
 import MilestoneManager from "../components/ui/MilestoneManager";
@@ -34,6 +35,7 @@ const CENTERS_OF_EXCELLENCE = [
 
 const EMPTY_FORM = {
   title: "", lead: "", college: "", department: "", status: "active",
+  progressStage: "Q1",
   startDate: "", endDate: "", fundingETB: 0, fundingSource: "ASTU Internal",
   tags: "", summary: "", centerOfExcellence: "None", collaborators: [],
   currency: "ETB",
@@ -43,6 +45,7 @@ const EMPTY_FORM = {
 
 export default function ResearchProjects() {
   const { token, user } = useAuth();
+  const { isAdmin, isPI, isCoResearcher, isReviewer, isFunder, isLegacyResearcher } = useRoles();
   const location = useLocation();
   const navigate = useNavigate();
   const query = new URLSearchParams(location.search);
@@ -111,8 +114,8 @@ export default function ResearchProjects() {
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    if (token && (user?.role === "admin" || user?.role === "researcher")) {
+    useEffect(() => {
+    if (token && (isAdmin() || isPI() || isLegacyResearcher())) {
       const authAPI = getServiceUrl("auth");
       fetch(`${authAPI}/auth/researchers`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -123,7 +126,7 @@ export default function ResearchProjects() {
         })
         .catch(console.error);
     }
-  }, [token, user]);
+  }, [token, user, isAdmin, isPI, isLegacyResearcher]);
 
   // Keep URL in sync with filter controls
   useEffect(() => {
@@ -183,6 +186,7 @@ export default function ResearchProjects() {
       formData.append("college", form.college);
       formData.append("department", form.department);
       formData.append("status", form.status);
+      formData.append("progressStage", form.progressStage || "Q1");
       formData.append("startDate", form.startDate);
       if (form.endDate) formData.append("endDate", form.endDate);
       formData.append("fundingETB", Number(form.fundingETB) || 0);
@@ -429,15 +433,15 @@ const handleTerminate = async (projectId) => {
           {projects.length === 0 && (
             <Btn onClick={handleSeed} variant="secondary">Seed Sample Data</Btn>
           )}
-          {(user?.role === "admin" || user?.role === "researcher") && (
-            <>
-              <Btn onClick={() => setShowNotifications(true)} variant="secondary">
-                🔔 Notifications
-              </Btn>
-              <Btn onClick={openAdd}>+ Add Research Proposal</Btn>
-            </>
-          )}
-        </>}
+          {(isAdmin() || isPI() || isLegacyResearcher()) && (
+          <>
+            <Btn onClick={() => setShowNotifications(true)} variant="secondary">
+              🔔 Notifications
+            </Btn>
+            <Btn onClick={openAdd}>+ Add Research Proposal</Btn>
+          </>
+        )}
+                </>}
       />
 
       {/* Tabs */}
@@ -548,6 +552,9 @@ const handleTerminate = async (projectId) => {
                           )}
                         </td>
                         <td style={{ padding: "10px 12px" }}><Badge status={p.status} />
+                        {p.progressStage && (
+                        <div style={{ color: "#22d3ee", fontSize: 10, marginTop: 4, fontWeight: 600 }}>{p.progressStage}</div>
+                      )}
                         {/* NEW: Show the reason ONLY if project is terminated */}
                         {p.status === 'terminated' && p.terminationReason && (
                           <div style={{ 
@@ -587,30 +594,37 @@ const handleTerminate = async (projectId) => {
                         </td>
                         <td style={{ padding: "10px 12px" }}>
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          {/* These buttons are for everyone (except maybe Funders if you want, but usually Viewers see them) */}
+                             {/* These buttons are for everyone (except maybe Funders if you want, but usually Viewers see them) */}
                             <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("timeline"); }}>Timeline</Btn>
                             <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("milestones"); }}>Milestones</Btn>
                             <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("social"); }}>💬 Social</Btn>
 
                             {/* 1. EXTENSION BUTTON: Use your exact logic so only Owners/Collabs/Admins can see it */}
-                            {(user?.role === "admin" || p.createdBy === user?.id || (p.collaborators && p.collaborators.some(c => c.userId === user?.id))) && (
-                              <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setShowExtensionModal(true); }}>⏳ Extend</Btn>
-                            )}
+                            // Determine if current user is the PI for this project (if pi field exists) or the creator
+                                const isProjectPI = p.pi ? (p.pi === user?.id || p.pi === user?._id) : false;
+                                const isCreator = p.createdBy === user?.id || p.createdBy === user?._id;
+                                const isCollaborator = p.collaborators && p.collaborators.some(c => (c.userId === user?.id || c.userId === user?._id));
+                                const canManage = isAdmin() || isProjectPI || isCreator || isCollaborator;
 
-                            {/* 2. EDIT BUTTON: Keep your existing logic here */}
-                            {(user?.role === "admin" || p.createdBy === user?.id || (p.collaborators && p.collaborators.some(c => c.userId === user?.id))) && (
-                              <Btn small onClick={() => { setEditing(p); setForm({ ...p, collaborators: p.collaborators || [] }); setAttachments([]); setShowForm(true); }}>Edit</Btn>
-                            )}
+                                // Extension: PI, creator, admin or collaborator can request (per policy: PI recommended, but we keep collaborator if assigned)
+                                { canManage && (
+                                  <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setShowExtensionModal(true); }}>⏳ Extend</Btn>
+                                )}
 
-                            {/* 3. TERMINATE BUTTON: Only Admins can Terminate (Matches your Delete logic) */}
-                            {user?.role === "admin" && p.status !== 'terminated' && (
-                              <Btn small variant="danger" onClick={() => handleTerminate(p._id)}>Terminate</Btn>
-                            )}
+                                // Edit: admin or PI (owner) or high-priority collaborator (existing logic still applies)
+                                { (isAdmin() || isProjectPI || isCreator || (p.collaborators && p.collaborators.some(c => (c.userId === user?.id || c.userId === user?._id) && c.priority === 'high'))) && (
+                                  <Btn small onClick={() => { setEditing(p); setForm({ ...p, collaborators: p.collaborators || [] }); setAttachments([]); setShowForm(true); }}>Edit</Btn>
+                                )}
 
-                            {/* 4. DELETE BUTTON: Keep your existing Admin-only logic */}
-                            {user?.role === "admin" && (
-                              <Btn small variant="danger" onClick={() => handleDelete(p._id)}>Delete</Btn>
-                            )}
+                                // Terminate: admin only
+                                { isAdmin() && p.status !== 'terminated' && (
+                                  <Btn small variant="danger" onClick={() => handleTerminate(p._id)}>Terminate</Btn>
+                                )}
+
+                                // Delete: admin only
+                                { isAdmin() && (
+                                  <Btn small variant="danger" onClick={() => handleDelete(p._id)}>Delete</Btn>
+                                )}
                           </div>
                         </td>
                       </tr>
@@ -676,7 +690,7 @@ const handleTerminate = async (projectId) => {
                           <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>{fmtETB(p.fundingETB)}</span>
                           
                           {/* Role-based Kanban Controls */}
-                          {user?.role === "admin" && (
+                          {isAdmin() && (
                             <div style={{ display: "flex", gap: 4 }}>
                               {colKey !== "paused" && colKey !== "active" && (
                                 <button
@@ -733,8 +747,8 @@ const handleTerminate = async (projectId) => {
                   entityType="research"
                   onEdit={(p) => openEdit(p)}
                   onDelete={(id) => handleDelete(id)}
-                  canEdit={(p) => user?.role === "admin" || p.createdBy === user?.id || (p.collaborators && p.collaborators.some(c => c.userId === user?.id))}
-                  canDelete={(p) => user?.role === "admin"}
+                  canEdit={(p) => isAdmin() || (p.pi ? p.pi === user?.id || p.pi === user?._id : p.createdBy === user?.id) || (p.collaborators && p.collaborators.some(c => c.userId === user?.id && c.priority === 'high'))}
+                  canDelete={(p) => isAdmin()}
                 />
               </SectionCard>
             </div>
@@ -865,6 +879,15 @@ const handleTerminate = async (projectId) => {
                   ))}
                 </select>
               </div>
+
+              <div>
+                <label style={labelStyle}>Progress Stage</label>
+                <select value={form.progressStage || "Q1"} onChange={e => setForm(f => ({ ...f, progressStage: e.target.value }))} style={inputStyle}>
+                  {["Q1", "Q2", "Q3", "Q4", "H1", "H2", "Terminal"].map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+            </div>
 
               <div>
                 <label style={labelStyle}>Funding Allocation (ETB)</label>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { ThemeProvider, useTheme } from "../../context/ThemeContext";
+import useRoles from "../../hooks/useRoles";
 import { SearchBar } from "../ui/SearchBar";
 
 const NAV = [
@@ -25,14 +26,15 @@ function LayoutContent({ children }) {
   const [notifications, setNotifications] = useState([]);
 
   const handleLogout = () => { logout(); navigate("/login"); };
+  const { isFunder } = useRoles();
+
   const filteredNav = NAV.filter(item => {
-    if (user?.role === 'funder') {
-      // Hides 'Settings' and 'Funding & Grants' from users with the "funder" role
+    if (isFunder()) {
+      // Hides 'Settings' and 'Funding & Grants' from funder role
       return !['Settings', 'Funding & Grants'].includes(item.label);
     }
     return true;
   });
-
   // Fetch unread notifications when user is logged in
   useEffect(() => {
     const fetchUnreadCount = async () => {
