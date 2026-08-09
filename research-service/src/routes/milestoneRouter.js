@@ -13,7 +13,9 @@ const {
   getMilestonesByStatus,
   completeMilestone,
   getMilestoneStats,
-  seedMilestones
+  seedMilestones,
+  submitMilestoneReport,
+  requestRevision
 } = require('../controllers/milestoneController');
 
 // NOTE: Authentication temporarily disabled for debugging
@@ -21,9 +23,9 @@ const {
 
 // POST /milestones - Create a new milestone
 router.post('/', createMilestone);
-router.post('/:id/submit', protect, requireRole('researcher', 'admin'), c.submitMilestoneReport);
+router.post('/:id/submit', submitMilestoneReport);
 
-router.post('/:id/request-revision', protect, requireRole('admin'), c.requestRevision);
+router.post('/:id/request-revision', requestRevision);
 // GET /milestones - Get all milestones across all projects
 router.get('/all', getAllMilestones);
 

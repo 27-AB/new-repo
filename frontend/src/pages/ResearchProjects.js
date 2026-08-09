@@ -246,6 +246,7 @@ export default function ResearchProjects() {
     }
   };
 
+  
   // Load all timelines for Gantt chart view
   const loadAllTimelines = async () => {
     try {
@@ -254,7 +255,7 @@ export default function ResearchProjects() {
       });
       if (res.ok) {
         const data = await res.json();
-        setTimelines(data.timelineItems || []);
+        setTimelines(Array.isArray(data.timelineItems) ? data.timelineItems : Array.isArray(data) ? data : []);
       }
     } catch (e) {
       console.error("Error loading all timelines:", e);
@@ -358,9 +359,7 @@ const handleTerminate = async (projectId) => {
 };
 
 // In the Actions column:
-{user.role === 'admin' && p.status !== 'terminated' && (
-  <Btn small variant="danger" onClick={() => handleTerminate(p._id)}>Terminate</Btn>
-)}
+
   // Load timeline and milestone data when switching to relevant views
   useEffect(() => {
     if (activeView === "gantt" || activeView === "milestones") {

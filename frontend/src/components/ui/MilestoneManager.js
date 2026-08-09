@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '../../context/AuthContext'; // adjust path to match your project structure
+import { Btn } from "./index";
 
 // ─── Inline style constants ────────────────────────────────────────────────────
 const DARK = '#0d1b2a';
@@ -148,6 +150,7 @@ function StatCard({ label, value, color, icon }) {
 // ─── Main Component ────────────────────────────────────────────────────────────
 const MilestoneManager = ({ projectId, entityType = 'research' }) => {
   const [milestones,  setMilestones]  = useState([]);
+  const { user, token } = useAuth();
   const [loading,     setLoading]     = useState(true);
   const [showModal,   setShowModal]   = useState(false);
   const [editing,     setEditing]     = useState(null);

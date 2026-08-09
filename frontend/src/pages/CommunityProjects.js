@@ -47,6 +47,8 @@ export default function CommunityProjects() {
   // Tabs and Hotspots
   const [activeTab, setActiveTab] = useState("table_view"); // "table_view" or "impact_map"
   const [hoveredLocation, setHoveredLocation] = useState(null);
+  const [showExtensionModal, setShowExtensionModal] = useState(false);
+  const [extensionForm, setExtensionForm] = useState({ newEndDate: "", justification: "" });
   
   const [showForm, setShowForm] = useState(false);
   const [editing,  setEditing]  = useState(null);
@@ -258,7 +260,17 @@ export default function CommunityProjects() {
       list: matched.map(m => m.title)
     };
   };
-
+ const inputStyle = {
+    width: "100%", background: "#0f1824",
+    border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
+    padding: "9px 12px", color: "#e2e8f0", fontSize: 13,
+    outline: "none", fontFamily: "inherit", boxSizing: "border-box"
+  };
+  const labelStyle = {
+    display: "block", color: "#94a3b8", fontSize: 11,
+    fontWeight: 600, marginBottom: 5,
+    textTransform: "uppercase", letterSpacing: ".05em"
+  };
   return (
     <div>
       <PageHeader title="Community Projects" sub={`${total} outreach projects in and around East Shewa`}
