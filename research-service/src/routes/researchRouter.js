@@ -37,15 +37,21 @@ const upload = multer({
   }
 });
 
+// --- UPDATED ROUTES WITH RBAC ---
+
+// 1. ALL ROLES: Can view projects (Controller will handle filtering what they see)
 router.get("/",        protect, c.getAll);
 router.get("/:id",     protect, c.getOne);
-router.post("/",       protect, requireRole("admin", "researcher"), upload.array("attachments", 5), c.create);
-router.put("/:id",     protect, requireRole("admin", "researcher"), upload.array("attachments", 5), c.update);
+
+// 2. PI & ADMIN ONLY: Can create and edit projects
+router.post("/",       protect, requireRole("admin", "pi"), upload.array("attachments", 5), c.create);
+router.put("/:id",     protect, requireRole("admin", "pi"), upload.array("attachments", 5), c.update);
+
+// 3. ADMIN ONLY: Full system access for deletion
 router.delete("/:id",  protect, requireRole("admin"), c.remove);
 
-// Add this near your other routes
-router.post('/:id/extension', protect, requireRole('admin', 'researcher'), async (req, res) => {
-  // Simple logic to create the request
+// 4. PI & ADMIN ONLY: Request extensions
+router.post('/:id/extension', protect, requireRole('admin', 'pi'), async (req, res) => {
   const ExtensionRequest = require('../models/ExtensionRequest');
   try {
     const request = await ExtensionRequest.create({
@@ -56,12 +62,19 @@ router.post('/:id/extension', protect, requireRole('admin', 'researcher'), async
     res.json({ success: true, request });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
-// Collaborator management routes
-router.post("/:id/collaborators",       protect, requireRole("admin", "researcher"), c.addCollaborator);
-router.put("/:id/collaborators",        protect, requireRole("admin", "researcher"), c.updateCollaborator);
-router.delete("/:id/collaborators",     protect, requireRole("admin", "researcher"), c.removeCollaborator);
-router.post("/:id/comments", protect, commentCtrl.addComment);
-router.get("/:id/comments", protect, commentCtrl.getComments);
+
+// 5. PI & ADMIN ONLY: Manage Collaborators (Co-researchers)
+router.post("/:id/collaborators",       protect, requireRole("admin", "pi"), c.addCollaborator);
+router.put("/:id/collaborators",        protect, requireRole("admin", "pi"), c.updateCollaborator);
+router.delete("/:id/collaborators",     protect, requireRole("admin", "pi"), c.removeCollaborator);
+
+// 6. CONTRIBUTIONS: PI, Co-researcher, Reviewer, and Admin can comment
+// Funder is EXCLUDED here (view-only)
+router.post("/:id/comments", protect, requireRole("admin", "pi", "co_researcher", "reviewer"), commentCtrl.addComment);
+router.get("/:id/comments",  protect, commentCtrl.getComments);
+
+// 7. REVIEWER & ADMIN ONLY: Approval/Rejection Workflow
+router.post("/:id/approve", protect, requireRole("admin", "reviewer"), c.approveProject); // You need to ensure c.approveProject exists
 
 router.post("/seed",   c.seed);
 

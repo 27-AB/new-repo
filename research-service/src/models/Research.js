@@ -3,10 +3,14 @@ const mongoose = require("mongoose");
 
 const researchSchema = new mongoose.Schema({
   title:        { type: String, required: true, trim: true },
-  lead:         { type: String, required: true },
+  lead:         { type: String, required: true }, // Formal Name of the PI
   college:      { type: String, required: true },
   department:   { type: String, required: true },
-  status:       { type: String, enum: ["active", "paused", "completed", "planned", "under_review", "rejected",  "extended", "terminated"], default: "active" },
+  status:       { 
+    type: String, 
+    enum: ["active", "paused", "completed", "planned", "under_review", "rejected", "extended", "terminated"], 
+    default: "active" 
+  },
   startDate:    { type: String, required: true },
   endDate:      { type: String },
   fundingETB:   { type: Number, default: 0 },
@@ -39,18 +43,28 @@ const researchSchema = new mongoose.Schema({
     url: { type: String },
     doi: { type: String }
   }],
-  // Ownership & Collaboration Fields
-  createdBy:    { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-  createdByName:{ type: String, default: "" },
-  // Existing collaborators array (keeps priority info)
+
+  // --- ROLE-BASED ACCESS CONTROL (RBAC) OWNERSHIP ---
+  
+  // ROLE 1: Admin (No field needed, access is global)
+  
+  // ROLE 2: Principal Investigator (PI) - The primary owner
+  pi: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, 
+
+  // ROLE 3: Co-researchers - Added to this array to gain "Contribute" access
   collaborators:[{ 
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     priority: { type: String, enum: ["high", "medium", "low"], default: "medium" }
   }],
-  // New: explicit PI and assignment fields for RBAC
-  pi:           { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // Principal Investigator user id
-  reviewers:    [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Assigned reviewers
-  funder:       { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // Funder / sponsor user id
+
+  // ROLE 4: Reviewers / Approvers - Assigned to review this specific project
+  reviewers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], 
+
+  // ROLE 5: Funder / Sponsor - Assigned for view-only access
+  funder: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+
+  createdBy:    { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  createdByName:{ type: String, default: "" },
   lastModifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   lastModifiedByName: { type: String, default: "" },
   
@@ -66,7 +80,7 @@ const researchSchema = new mongoose.Schema({
   irbInstitution: { type: String, trim: true, default: "" },
   ethicsNotes: { type: String, default: "" },
   
-  // Financial Lock (when ethics expired or budget exceeded)
+  // Financial Lock (Logic for locking expenditures)
   financialLock: {
     isLocked: { type: Boolean, default: false },
     reason: { type: String, enum: ["", "ethics_expired", "budget_exceeded", "manual_lock"], default: "" },
