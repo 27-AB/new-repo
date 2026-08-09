@@ -207,6 +207,7 @@ exports.updateUserProfile = async (req, res) => {
 };
 
 // POST /auth/seed  — creates default admin + demo accounts
+// POST /auth/seed  — creates default admin + demo accounts
 exports.seed = async (req, res) => {
   try {
     // Delete known seed accounts to force updates if they exist
@@ -217,15 +218,15 @@ exports.seed = async (req, res) => {
     await User.deleteMany({ email: { $in: seedEmails } });
 
     await User.create([
-      // Minimal safe demo accounts (DEMO passwords)
-      { name: "Demo Admin", email: "admin@astu.edu.et", password: "DEMO-AdminPass123!", role: "admin", college: "Administration" },
-      { name: "Demo PI", email: "pi@astu.edu.et", password: "DEMO-PIPass123!", role: "pi", college: "College of Science" },
-      { name: "Demo Co-researcher", email: "coresearcher@astu.edu.et", password: "DEMO-CoPass123!", role: "co_researcher", college: "College of Science" },
-      { name: "Demo Reviewer", email: "reviewer@astu.edu.et", password: "DEMO-ReviewerPass123!", role: "reviewer", college: "Research Office" },
-      { name: "Demo Funder", email: "funder@astu.edu.et", password: "DEMO-FunderPass123!", role: "funder", college: "External" },
+      // Demo accounts with simple, consistent passwords for local testing (DO NOT use in production)
+      { name: "Demo Admin",          email: "admin@astu.edu.et",       password: "admin1234",         role: "admin",        college: "Administration" },
+      { name: "Demo PI",             email: "pi@astu.edu.et",          password: "pi1234",            role: "pi",           college: "College of Science" },
+      { name: "Demo Co-researcher",  email: "coresearcher@astu.edu.et",password: "coresearcher1234",  role: "co_researcher", college: "College of Science" },
+      { name: "Demo Reviewer",       email: "reviewer@astu.edu.et",    password: "reviewer1234",      role: "reviewer",     college: "Research Office" },
+      { name: "Demo Funder",         email: "funder@astu.edu.et",      password: "funder1234",        role: "funder",       college: "External" },
       // Keep a generic researcher and viewer for compatibility
-      { name: "Demo Researcher", email: "researcher@astu.edu.et", password: "research1234", role: "researcher", college: "College of Engineering" },
-      { name: "Demo Viewer", email: "viewer@astu.edu.et", password: "viewer1234", role: "viewer", college: "Public" },
+      { name: "Demo Researcher",     email: "researcher@astu.edu.et", password: "researcher1234",    role: "researcher",   college: "College of Engineering" },
+      { name: "Demo Viewer",         email: "viewer@astu.edu.et",     password: "viewer1234",        role: "viewer",       college: "Public" },
     ]);
 
     res.json({ success: true, message: "Demo users seeded successfully (DEMO credentials)." });

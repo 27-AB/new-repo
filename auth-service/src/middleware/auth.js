@@ -17,5 +17,15 @@ const requireRole = (...roles) => (req, res, next) => {
     return res.status(403).json({ success: false, message: "Access denied." });
   next();
 };
-
+// This function checks if the user's role is in the allowed list
+exports.restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        message: "You do not have permission to perform this action"
+      });
+    }
+    next();
+  };
+};
 module.exports = { protect, requireRole };

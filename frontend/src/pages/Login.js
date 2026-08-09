@@ -62,13 +62,17 @@ export default function Login() {
             {loading ? "Signing in…" : "Sign In"}
           </button>
         </form>
-
         <div style={{ marginTop:28, padding:"16px", background:"rgba(6,182,212,0.06)", borderRadius:8, border:"1px solid rgba(6,182,212,0.15)" }}>
-          <p style={{ color:"#64748b", fontSize:12, marginBottom:8, fontWeight:600 }}>DEMO ACCOUNTS:</p>
+          <p style={{ color:"#64748b", fontSize:12, marginBottom:8, fontWeight:600 }}>DEMO ACCOUNTS (local dev only):</p>
           <p style={{ color:"#94a3b8", fontSize:12, margin:"3px 0" }}>Admin: <span style={{ color:"#22d3ee" }}>admin@astu.edu.et</span> / admin1234</p>
-          <p style={{ color:"#94a3b8", fontSize:12, margin:"3px 0" }}>Researcher: <span style={{ color:"#22d3ee" }}>researcher@astu.edu.et</span> / research1234</p>
+          <p style={{ color:"#94a3b8", fontSize:12, margin:"3px 0" }}>PI: <span style={{ color:"#22d3ee" }}>pi@astu.edu.et</span> / pi1234</p>
+          <p style={{ color:"#94a3b8", fontSize:12, margin:"3px 0" }}>Co-researcher: <span style={{ color:"#22d3ee" }}>coresearcher@astu.edu.et</span> / coresearcher1234</p>
+          <p style={{ color:"#94a3b8", fontSize:12, margin:"3px 0" }}>Reviewer: <span style={{ color:"#22d3ee" }}>reviewer@astu.edu.et</span> / reviewer1234</p>
+          <p style={{ color:"#94a3b8", fontSize:12, margin:"3px 0" }}>Funder: <span style={{ color:"#22d3ee" }}>funder@astu.edu.et</span> / funder1234</p>
+          <p style={{ color:"#94a3b8", fontSize:12, margin:"3px 0" }}>Researcher (legacy): <span style={{ color:"#22d3ee" }}>researcher@astu.edu.et</span> / researcher1234</p>
           <p style={{ color:"#94a3b8", fontSize:12, margin:"3px 0" }}>Viewer: <span style={{ color:"#22d3ee" }}>viewer@astu.edu.et</span> / viewer1234</p>
         </div>
+        
       </div>
     </div>
   );

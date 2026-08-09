@@ -11,7 +11,12 @@ const userSchema = new mongoose.Schema({
   emailVerified: { type: Boolean, default: false },
   password:  { type: String, required: true, minlength: 6 },
   // Expanded role enum to include the new roles. Keep 'researcher' and 'viewer' for backward compatibility.
-  role:      { type: String, enum: VALID_ROLES, default: "viewer" },
+  // Replace the role section in User.js
+role: {
+    type: String,
+    enum: ['admin', 'pi', 'co_researcher', 'reviewer', 'funder'],
+    default: 'pi'
+},
   college:   { type: String, default: "" },
   avatar:    { type: String, default: "" },
   isActive:  { type: Boolean, default: true },

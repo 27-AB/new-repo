@@ -523,112 +523,105 @@ const handleTerminate = async (projectId) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {activeProjects.map(p => (
-                      <tr key={p._id}
-                        onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                        style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                        <td style={{ padding: "10px 12px", color: "#e2e8f0", fontWeight: 500, maxWidth: 220, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={p.title}>{p.title}</td>
-                        <td style={{ padding: "10px 12px", color: "#94a3b8", whiteSpace: "nowrap" }}>
-                          <div>{p.lead}</div>
-                          {(() => {
-                            const collaboratorNames = p.collaborators 
-                              ? p.collaborators.map(c => {
-                                  const researcher = allResearchers.find(r => r._id === (c.userId || c));
-                                  return researcher ? researcher.name : null;
-                                }).filter(Boolean)
-                              : [];
-                            return collaboratorNames.length > 0 ? (
-                              <div style={{ color: "#22d3ee", fontSize: 10, marginTop: 2, display: "flex", alignItems: "center", gap: 3 }} title={`Collaborators: ${collaboratorNames.join(", ")}`}>
-                                👥 +{collaboratorNames.length} {collaboratorNames.length === 1 ? "collab" : "collabs"}
-                              </div>
-                            ) : null;
-                          })()}
-                        </td>
-                        <td style={{ padding: "10px 12px", color: "#64748b", fontSize: 12 }}>
-                          <div>{p.college?.replace("College of ", "")}</div>
-                          {p.centerOfExcellence && p.centerOfExcellence !== "None" && (
-                            <div style={{ color: "#22d3ee", fontSize: 10, marginTop: 2, fontWeight: 600 }}>🏛️ {p.centerOfExcellence.replace("Center of Excellence for ", "").split(" (")[0]}</div>
-                          )}
-                        </td>
-                        <td style={{ padding: "10px 12px" }}><Badge status={p.status} />
-                        {p.progressStage && (
-                        <div style={{ color: "#22d3ee", fontSize: 10, marginTop: 4, fontWeight: 600 }}>{p.progressStage}</div>
-                      )}
-                        {/* NEW: Show the reason ONLY if project is terminated */}
-                        {p.status === 'terminated' && p.terminationReason && (
-                          <div style={{ 
-                            color: "#ef4444", 
-                            fontSize: "10px", 
-                            marginTop: 4, 
-                            fontStyle: "italic",
-                            maxWidth: "120px",
-                            lineHeight: "1.2"
-                          }}>
-                            Reason: {p.terminationReason}
-                          </div>
-                        )}
-                        </td>
-                        <td style={{ padding: "10px 12px", color: "#f59e0b", fontFamily: "monospace", fontSize: 12 }}>{(p.fundingETB || 0).toLocaleString()}</td>
-                        <td style={{ padding: "10px 12px", color: "#64748b", fontSize: 12, fontFamily: "monospace" }}>
-                          <div>{p.startDate}</div>
-                          {p.createdByName && (
-                            <div style={{ color: "#475569", fontSize: 10, marginTop: 2 }}>👤 {p.createdByName}</div>
-                          )}
-                          {p.attachments && p.attachments.length > 0 && (
-                            <div style={{ marginTop: 4 }}>
-                              <div style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, marginBottom: 2 }}>📎 Files:</div>
-                              {p.attachments.map((att, idx) => (
-                                <a
-                                  key={idx}
-                                  href={`${API}/uploads/${att.filename}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{ display: "block", color: "#22d3ee", fontSize: 10, textDecoration: "none", marginBottom: 1 }}
-                                >
-                                  {att.originalName}
-                                </a>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ padding: "10px 12px" }}>
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                             {/* These buttons are for everyone (except maybe Funders if you want, but usually Viewers see them) */}
-                            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("timeline"); }}>Timeline</Btn>
-                            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("milestones"); }}>Milestones</Btn>
-                            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("social"); }}>💬 Social</Btn>
+                    {activeProjects.map((p) => {
+  // permission helpers for this project row
+  const isProjectPI = p.pi ? (p.pi === user?.id || p.pi === user?._id) : false;
+  const isCreator = (p.createdBy === user?.id || p.createdBy === user?._id);
+  const isCollaborator = p.collaborators && p.collaborators.some(c => ( (c.userId === user?.id) || (c.userId === user?._id) ));
+  const isHighPriorityCollaborator = p.collaborators && p.collaborators.some(c => ( (c.userId === user?.id) || (c.userId === user?._id) ) && c.priority === "high");
+  const canManage = isAdmin() || isProjectPI || isCreator || isCollaborator;
 
-                            {/* 1. EXTENSION BUTTON: Use your exact logic so only Owners/Collabs/Admins can see it */}
-                            // Determine if current user is the PI for this project (if pi field exists) or the creator
-                                const isProjectPI = p.pi ? (p.pi === user?.id || p.pi === user?._id) : false;
-                                const isCreator = p.createdBy === user?.id || p.createdBy === user?._id;
-                                const isCollaborator = p.collaborators && p.collaborators.some(c => (c.userId === user?.id || c.userId === user?._id));
-                                const canManage = isAdmin() || isProjectPI || isCreator || isCollaborator;
+  return (
+    <tr key={p._id}
+      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
+      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+      style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+      <td style={{ padding: "10px 12px", color: "#e2e8f0", fontWeight: 500, maxWidth: 220, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={p.title}>
+        {p.title}
+      </td>
+      <td style={{ padding: "10px 12px", color: "#94a3b8", whiteSpace: "nowrap" }}>
+        <div>{p.lead}</div>
+        {(() => {
+          const collaboratorNames = p.collaborators 
+            ? p.collaborators.map(c => {
+                const researcher = allResearchers.find(r => r._id === (c.userId || c));
+                return researcher ? researcher.name : null;
+              }).filter(Boolean)
+            : [];
+          return collaboratorNames.length > 0 ? (
+            <div style={{ color: "#22d3ee", fontSize: 10, marginTop: 2, display: "flex", alignItems: "center", gap: 3 }} title={`Collaborators: ${collaboratorNames.join(", ")}`}>
+              👥 +{collaboratorNames.length} {collaboratorNames.length === 1 ? "collab" : "collabs"}
+            </div>
+          ) : null;
+        })()}
+      </td>
+      <td style={{ padding: "10px 12px", color: "#64748b", fontSize: 12 }}>
+        <div>{p.college?.replace("College of ", "")}</div>
+        {p.centerOfExcellence && p.centerOfExcellence !== "None" && (
+          <div style={{ color: "#22d3ee", fontSize: 10, marginTop: 2, fontWeight: 600 }}>🏛️ {p.centerOfExcellence.replace("Center of Excellence for ", "").split(" (")[0]}</div>
+        )}
+      </td>
+      <td style={{ padding: "10px 12px" }}>
+        <Badge status={p.status} />
+        {p.status === 'terminated' && p.terminationReason && (
+          <div style={{ color: "#ef4444", fontSize: "10px", marginTop: 4, fontStyle: "italic", maxWidth: "120px", lineHeight: "1.2" }}>
+            Reason: {p.terminationReason}
+          </div>
+        )}
+      </td>
+      <td style={{ padding: "10px 12px", color: "#f59e0b", fontFamily: "monospace", fontSize: 12 }}>{(p.fundingETB || 0).toLocaleString()}</td>
+      <td style={{ padding: "10px 12px", color: "#64748b", fontSize: 12, fontFamily: "monospace" }}>
+        <div>{p.startDate}</div>
+        {p.createdByName && (
+          <div style={{ color: "#475569", fontSize: 10, marginTop: 2 }}>👤 {p.createdByName}</div>
+        )}
+        {p.attachments && p.attachments.length > 0 && (
+          <div style={{ marginTop: 4 }}>
+            <div style={{ color: "#94a3b8", fontSize: 10, fontWeight: 600, marginBottom: 2 }}>📎 Files:</div>
+            {p.attachments.map((att, idx) => (
+              <a
+                key={idx}
+                href={`${API}/uploads/${att.filename}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: "block", color: "#22d3ee", fontSize: 10, textDecoration: "none", marginBottom: 1 }}
+              >
+                {att.originalName}
+              </a>
+            ))}
+          </div>
+        )}
+      </td>
+      <td style={{ padding: "10px 12px" }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("timeline"); }}>Timeline</Btn>
+          <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("milestones"); }}>Milestones</Btn>
+          <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setActiveView("social"); }}>💬 Social</Btn>
 
-                                // Extension: PI, creator, admin or collaborator can request (per policy: PI recommended, but we keep collaborator if assigned)
-                                { canManage && (
-                                  <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setShowExtensionModal(true); }}>⏳ Extend</Btn>
-                                )}
+          {/* Extension button: allowed for admins, PI, creator, or collaborators */}
+          { canManage && (
+            <Btn small variant="secondary" onClick={() => { setSelectedProject(p); setShowExtensionModal(true); }}>⏳ Extend</Btn>
+          )}
 
-                                // Edit: admin or PI (owner) or high-priority collaborator (existing logic still applies)
-                                { (isAdmin() || isProjectPI || isCreator || (p.collaborators && p.collaborators.some(c => (c.userId === user?.id || c.userId === user?._id) && c.priority === 'high'))) && (
-                                  <Btn small onClick={() => { setEditing(p); setForm({ ...p, collaborators: p.collaborators || [] }); setAttachments([]); setShowForm(true); }}>Edit</Btn>
-                                )}
+          {/* Edit button: admin, PI/creator, or high-priority collaborator */}
+          { (isAdmin() || isProjectPI || isCreator || isHighPriorityCollaborator) && (
+            <Btn small onClick={() => { setEditing(p); setForm({ ...p, collaborators: p.collaborators || [] }); setAttachments([]); setShowForm(true); }}>Edit</Btn>
+          )}
 
-                                // Terminate: admin only
-                                { isAdmin() && p.status !== 'terminated' && (
-                                  <Btn small variant="danger" onClick={() => handleTerminate(p._id)}>Terminate</Btn>
-                                )}
+          {/* Terminate: admin only */}
+          { isAdmin() && p.status !== 'terminated' && (
+            <Btn small variant="danger" onClick={() => handleTerminate(p._id)}>Terminate</Btn>
+          )}
 
-                                // Delete: admin only
-                                { isAdmin() && (
-                                  <Btn small variant="danger" onClick={() => handleDelete(p._id)}>Delete</Btn>
-                                )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+          {/* Delete: admin only */}
+          { isAdmin() && (
+            <Btn small variant="danger" onClick={() => handleDelete(p._id)}>Delete</Btn>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+})}
                     {activeProjects.length === 0 && (
                       <tr><td colSpan={7} style={{ padding: "32px", textAlign: "center", color: "#475569" }}>No active projects found. Click "Seed Sample Data" or create a proposal!</td></tr>
                     )}

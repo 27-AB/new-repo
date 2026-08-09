@@ -1,3 +1,4 @@
+// research-service/src/routes/researchRouter.js
 const router = require("express").Router();
 const c = require("../controllers/researchController");
 const { protect, requireRole } = require("../middleware/auth");
@@ -73,9 +74,26 @@ router.delete("/:id/collaborators",     protect, requireRole("admin", "pi"), c.r
 router.post("/:id/comments", protect, requireRole("admin", "pi", "co_researcher", "reviewer"), commentCtrl.addComment);
 router.get("/:id/comments",  protect, commentCtrl.getComments);
 
-// 7. REVIEWER & ADMIN ONLY: Approval/Rejection Workflow
-router.post("/:id/approve", protect, requireRole("admin", "reviewer"), c.approveProject); // You need to ensure c.approveProject exists
+// 7. REVIEWER & ADMIN ONLY: Approval Workflow (inline handler to avoid undefined controller)
+router.post("/:id/approve", protect, requireRole("admin", "reviewer"), async (req, res) => {
+  try {
+    const Research = require("../models/Research");
+    const project = await Research.findById(req.params.id);
+    if (!project) return res.status(404).json({ success: false, message: "Project not found." });
 
+    // Set status to 'active' to indicate approval (adjust if you prefer another status)
+    project.status = "active";
+    project.lastModifiedBy = req.user.id;
+    project.lastModifiedByName = req.user.name;
+    await project.save();
+
+    res.json({ success: true, message: "Project approved.", project });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 8. Seed route
 router.post("/seed",   c.seed);
 
 module.exports = router;
