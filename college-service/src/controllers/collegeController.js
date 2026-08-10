@@ -1,4 +1,6 @@
-const { College, Researcher } = require("../models/College");
+const College = require("../models/College");
+// Note: If Researcher is in a different file, import it separately
+const Researcher = require("../models/Researcher");
 
 // GET /colleges/
 exports.getAll = async (req, res) => {
