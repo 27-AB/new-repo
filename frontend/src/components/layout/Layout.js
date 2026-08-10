@@ -1,3 +1,5 @@
+import { getServiceUrl } from "../config/api"; // Make sure the path is correct
+const NOTIF_API = getServiceUrl("notifications");
 import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -40,7 +42,7 @@ function LayoutContent({ children }) {
     const fetchUnreadCount = async () => {
       if (user?.id && token) {
         try {
-          const res = await fetch(`http://localhost:4001/user-notifications/user/${user.id}/unread-count`, {
+          const res = await fetch(`${NOTIF_API}/user/${user.id}/unread-count`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (res.ok) {
