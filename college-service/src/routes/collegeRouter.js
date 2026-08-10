@@ -3,16 +3,21 @@ const c = require("../controllers/collegeController");
 const { protect, requireRole } = require("../middleware/auth");
 
 // --- 1. SEED ROUTE (MUST BE AT THE TOP & GET METHOD) ---
+// This allows you to seed the database by visiting the URL in your browser.
 router.get("/seed", c.seed); 
 
 // --- 2. GENERAL ROUTES ---
+// GET /colleges/ - Get all colleges
 router.get("/", protect, c.getAll);
+
+// GET /colleges/researchers - Get all researchers
 router.get("/researchers", protect, c.getResearchers);
 
 // --- 3. SPECIFIC ID ROUTES ---
+// GET /colleges/:id - Get one college by ID
 router.get("/:id", protect, c.getOne);
 
-// --- 4. ADMIN ACTIONS ---
+// --- 4. ADMIN ACTIONS (ADMIN ROLE ONLY) ---
 router.post("/", protect, requireRole("admin"), c.create);
 router.put("/:id", protect, requireRole("admin"), c.update);
 router.delete("/:id", protect, requireRole("admin"), c.remove);
