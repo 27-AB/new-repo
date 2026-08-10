@@ -37,13 +37,25 @@ const upload = multer({
   }
 });
 
-router.get("/",        protect, c.getAll);
-router.get("/:id",     protect, c.getOne);
-router.post("/",       protect, requireRole("admin", "researcher"), upload.array("attachments", 5), c.create);
-router.put("/:id",     protect, requireRole("admin", "researcher"), upload.array("attachments", 5), c.update);
-router.delete("/:id",  protect, requireRole("admin"), c.remove);
+// --- ROUTES START HERE ---
+
+// 1. SEED ROUTE (Must be at the top and public for initial setup)
+router.get("/seed", c.seed); 
+
+// 2. GENERAL ROUTES
+router.get("/", protect, c.getAll);
+
+// 3. SPECIFIC ID ROUTES (Must be below /seed)
+router.get("/:id", protect, c.getOne);
+
+// 4. PROTECTED ACTIONS
+// Note: Roles updated to match your new system (admin, pi)
+router.post("/", protect, requireRole("admin", "pi", "researcher"), upload.array("attachments", 5), c.create);
+router.put("/:id", protect, requireRole("admin", "pi", "researcher"), upload.array("attachments", 5), c.update);
+router.delete("/:id", protect, requireRole("admin"), c.remove);
+
+// 5. COMMENTS
 router.post("/:id/comments", protect, commentCtrl.addComment);
 router.get("/:id/comments", protect, commentCtrl.getComments);
-router.get("/seed",  c.seed);
 
 module.exports = router;
