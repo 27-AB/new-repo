@@ -1,28 +1,79 @@
 const { College, Researcher } = require("../models/College");
 
-exports.getColleges = async (req, res) => {
+// GET /colleges/
+exports.getAll = async (req, res) => {
   try {
     const colleges = await College.find().sort({ name: 1 }).maxTimeMS(5000);
     res.json({ success: true, total: colleges.length, colleges });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { 
+    res.status(500).json({ success: false, message: err.message }); 
+  }
 };
 
+// GET /colleges/researchers
 exports.getResearchers = async (req, res) => {
   try {
     const { college, search, page = 1, limit = 20 } = req.query;
     const query = {};
     if (college) query.college = new RegExp(college, "i");
     if (search)  query.$or = [{ name: new RegExp(search, "i") }, { specialization: new RegExp(search, "i") }];
-    const researchers = await Researcher.find(query).sort({ publications: -1 }).skip((page - 1) * limit).limit(Number(limit)).maxTimeMS(5000);
-    const total = researchers.length;
-    res.json({ success: true, total, researchers });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+    
+    const researchers = await Researcher.find(query)
+      .sort({ publications: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+      .maxTimeMS(5000);
+      
+    res.json({ success: true, total: researchers.length, researchers });
+  } catch (err) { 
+    res.status(500).json({ success: false, message: err.message }); 
+  }
 };
 
-// DELETE and re-seed so correct colleges replace wrong ones
+// GET /colleges/:id
+exports.getOne = async (req, res) => {
+  try {
+    const college = await College.findById(req.params.id);
+    if (!college) return res.status(404).json({ success: false, message: "College not found" });
+    res.json({ success: true, college });
+  } catch (err) { 
+    res.status(500).json({ success: false, message: err.message }); 
+  }
+};
+
+// POST /colleges/ (Admin Only)
+exports.create = async (req, res) => {
+  try {
+    const college = await College.create(req.body);
+    res.status(201).json({ success: true, college });
+  } catch (err) { 
+    res.status(400).json({ success: false, message: err.message }); 
+  }
+};
+
+// PUT /colleges/:id (Admin Only)
+exports.update = async (req, res) => {
+  try {
+    const college = await College.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json({ success: true, college });
+  } catch (err) { 
+    res.status(400).json({ success: false, message: err.message }); 
+  }
+};
+
+// DELETE /colleges/:id (Admin Only)
+exports.remove = async (req, res) => {
+  try {
+    await College.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: "College deleted" });
+  } catch (err) { 
+    res.status(500).json({ success: false, message: err.message }); 
+  }
+};
+
+// SEED DATA
 exports.seed = async (req, res) => {
   try {
-    // Always wipe and re-seed so corrections take effect
     await College.deleteMany({});
     await Researcher.deleteMany({});
 
@@ -87,19 +138,12 @@ exports.seed = async (req, res) => {
       { name: "Dr. Tesfaye Worku",    title: "Dr.",   college: "College of Electrical Engineering & Computing",          department: "Computer Science & Engineering",    email: "tesfaye.worku@astu.edu.et",    specialization: ["Artificial Intelligence", "Computer Vision", "Machine Learning"],       publications: 18, activeProjects: 3 },
       { name: "Prof. Almaz Tadesse",  title: "Prof.", college: "College of Mechanical, Chemical & Materials Engineering", department: "Chemical Engineering",               email: "almaz.tadesse@astu.edu.et",    specialization: ["Water Treatment", "Solar Energy", "Environmental Engineering"],         publications: 32, activeProjects: 2 },
       { name: "Dr. Biruk Hailu",      title: "Dr.",   college: "College of Civil Engineering and Architecture",           department: "Civil Engineering",                  email: "biruk.hailu@astu.edu.et",      specialization: ["Structural Engineering", "Seismic Analysis", "Urban Infrastructure"],   publications: 14, activeProjects: 2 },
-      { name: "Dr. Yonas Girma",      title: "Dr.",   college: "College of Electrical Engineering & Computing",          department: "Computer Science & Engineering",    email: "yonas.girma@astu.edu.et",      specialization: ["Blockchain", "Distributed Systems", "Cybersecurity"],                  publications: 11, activeProjects: 1 },
       { name: "Prof. Mekdes Bekele",  title: "Prof.", college: "College of Applied Natural Science",                      department: "Biology & Biotechnology",            email: "mekdes.bekele@astu.edu.et",    specialization: ["Genomics", "Biotechnology", "Plant Science"],                           publications: 41, activeProjects: 2 },
-      { name: "Dr. Solomon Bekele",   title: "Dr.",   college: "College of Electrical Engineering & Computing",          department: "Electrical & Computer Engineering", email: "solomon.bekele@astu.edu.et",   specialization: ["Renewable Energy", "Wind Power", "Power Systems"],                     publications: 22, activeProjects: 1 },
-      { name: "Dr. Hana Tesfaye",     title: "Dr.",   college: "College of Electrical Engineering & Computing",          department: "Computer Science & Engineering",    email: "hana.tesfaye@astu.edu.et",     specialization: ["Natural Language Processing", "Amharic NLP", "Deep Learning"],         publications: 15, activeProjects: 2 },
-      { name: "Prof. Getachew Mengistu", title: "Prof.", college: "College of Applied Natural Science",                   department: "Earth Sciences",                     email: "getachew.mengistu@astu.edu.et",specialization: ["Geothermal Energy", "Geology", "Geophysics"],                           publications: 38, activeProjects: 1 },
-      { name: "Dr. Robel Tadesse",    title: "Dr.",   college: "College of Electrical Engineering & Computing",          department: "Electrical & Computer Engineering", email: "robel.tadesse@astu.edu.et",    specialization: ["IoT", "Smart Systems", "Embedded Systems"],                            publications: 9,  activeProjects: 2 },
-      { name: "Dr. Chaltu Wakjira",   title: "Dr.",   college: "College of Applied Natural Science",                     department: "Biology & Biotechnology",            email: "chaltu.wakjira@astu.edu.et",   specialization: ["Ethnopharmacology", "Traditional Medicine", "Drug Discovery"],         publications: 19, activeProjects: 2 },
-      { name: "Dr. Fikirte Haile",    title: "Dr.",   college: "College of Applied Natural Science",                     department: "Environmental Science",              email: "fikirte.haile@astu.edu.et",    specialization: ["Remote Sensing", "Climate Change", "GIS"],                             publications: 16, activeProjects: 2 },
-      { name: "Prof. Dawit Asfaw",    title: "Prof.", college: "College of Mechanical, Chemical & Materials Engineering", department: "Chemical Engineering",               email: "dawit.asfaw@astu.edu.et",      specialization: ["Biogas", "Waste-to-Energy", "Anaerobic Digestion"],                    publications: 27, activeProjects: 1 },
-      { name: "Dr. Selamawit Girma",  title: "Dr.",   college: "College of Humanities and Social Science",               department: "Sociology",                          email: "selamawit.girma@astu.edu.et",  specialization: ["Entrepreneurship", "Women Empowerment", "Development Economics"],      publications: 12, activeProjects: 1 },
       { name: "Prof. Tesfaye Demissie", title: "Prof.", college: "College of Humanities and Social Science",             department: "Journalism & Communication",          email: "tesfaye.demissie@astu.edu.et", specialization: ["Media Studies", "Digital Communication", "Public Relations"],          publications: 21, activeProjects: 1 },
     ]);
 
     res.json({ success: true, message: "Colleges and researchers seeded with correct ASTU data." });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { 
+    res.status(500).json({ success: false, message: err.message }); 
+  }
 };
