@@ -1,4 +1,3 @@
-// research-service/src/routes/researchRouter.js
 const router = require("express").Router();
 const c = require("../controllers/researchController");
 const { protect, requireRole } = require("../middleware/auth");
@@ -38,50 +37,52 @@ const upload = multer({
   }
 });
 
-// --- UPDATED ROUTES WITH RBAC ---
+// --- 1. SEED ROUTE (MUST BE AT THE TOP & GET METHOD) ---
+// This allows you to visit /projects/seed in your browser to setup the DB
+router.get("/seed", c.seed);
 
-// 1. ALL ROLES: Can view projects (Controller will handle filtering what they see)
+// --- 2. GENERAL VIEWING ROUTES ---
 router.get("/",        protect, c.getAll);
-router.get("/:id",     protect, c.getOne);
 
-// 2. PI & ADMIN ONLY: Can create and edit projects
+// --- 3. PROJECT CREATION & EDITING (PI & ADMIN ONLY) ---
 router.post("/",       protect, requireRole("admin", "pi"), upload.array("attachments", 5), c.create);
-router.put("/:id",     protect, requireRole("admin", "pi"), upload.array("attachments", 5), c.update);
 
-// 3. ADMIN ONLY: Full system access for deletion
+// --- 4. SPECIFIC ID ROUTES (MUST BE BELOW /seed) ---
+router.get("/:id",     protect, c.getOne);
+router.put("/:id",     protect, requireRole("admin", "pi"), upload.array("attachments", 5), c.update);
 router.delete("/:id",  protect, requireRole("admin"), c.remove);
 
-// 4. PI & ADMIN ONLY: Request extensions
+// --- 5. EXTENSION REQUESTS (PI & ADMIN ONLY) ---
 router.post('/:id/extension', protect, requireRole('admin', 'pi'), async (req, res) => {
-  const ExtensionRequest = require('../models/ExtensionRequest');
   try {
+    const ExtensionRequest = require('../models/ExtensionRequest');
     const request = await ExtensionRequest.create({
       projectId: req.params.id,
       ...req.body,
       requestedBy: req.user.id
     });
     res.json({ success: true, request });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { 
+    res.status(500).json({ success: false, message: e.message }); 
+  }
 });
 
-// 5. PI & ADMIN ONLY: Manage Collaborators (Co-researchers)
-router.post("/:id/collaborators",       protect, requireRole("admin", "pi"), c.addCollaborator);
-router.put("/:id/collaborators",        protect, requireRole("admin", "pi"), c.updateCollaborator);
-router.delete("/:id/collaborators",     protect, requireRole("admin", "pi"), c.removeCollaborator);
+// --- 6. COLLABORATOR MANAGEMENT ---
+router.post("/:id/collaborators",   protect, requireRole("admin", "pi"), c.addCollaborator);
+router.put("/:id/collaborators",    protect, requireRole("admin", "pi"), c.updateCollaborator);
+router.delete("/:id/collaborators", protect, requireRole("admin", "pi"), c.removeCollaborator);
 
-// 6. CONTRIBUTIONS: PI, Co-researcher, Reviewer, and Admin can comment
-// Funder is EXCLUDED here (view-only)
+// --- 7. COMMENTS (EXCLUDES FUNDER) ---
 router.post("/:id/comments", protect, requireRole("admin", "pi", "co_researcher", "reviewer"), commentCtrl.addComment);
 router.get("/:id/comments",  protect, commentCtrl.getComments);
 
-// 7. REVIEWER & ADMIN ONLY: Approval Workflow (inline handler to avoid undefined controller)
+// --- 8. APPROVAL WORKFLOW (REVIEWER & ADMIN ONLY) ---
 router.post("/:id/approve", protect, requireRole("admin", "reviewer"), async (req, res) => {
   try {
     const Research = require("../models/Research");
     const project = await Research.findById(req.params.id);
     if (!project) return res.status(404).json({ success: false, message: "Project not found." });
 
-    // Set status to 'active' to indicate approval (adjust if you prefer another status)
     project.status = "active";
     project.lastModifiedBy = req.user.id;
     project.lastModifiedByName = req.user.name;
@@ -92,8 +93,5 @@ router.post("/:id/approve", protect, requireRole("admin", "reviewer"), async (re
     res.status(500).json({ success: false, message: err.message });
   }
 });
-
-// 8. Seed route
-router.post("/seed",   c.seed);
 
 module.exports = router;
