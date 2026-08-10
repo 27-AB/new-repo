@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema({
   // Replace the role section in User.js
 role: {
     type: String,
-    enum: ['admin', 'pi', 'co_researcher', 'reviewer', 'funder'],
+    enum: ['admin', 'pi', 'co_researcher', 'reviewer', 'funder','researcher', 'viewer'],
     default: 'pi'
 },
   college:   { type: String, default: "" },
