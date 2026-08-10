@@ -1,4 +1,5 @@
-import { getServiceUrl } from "../config/api"; // Make sure the path is correct
+import { getServiceUrl } from "../../config/api";
+ // Make sure the path is correct
 const NOTIF_API = getServiceUrl("notifications");
 import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
