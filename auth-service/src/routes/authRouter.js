@@ -21,7 +21,7 @@ router.put("/users/:id", protect, requireRole("admin"), updateUserProfile);
 router.put("/users/:userId/email", protect, requireRole("admin"), updateUserEmail);
 router.put("/users/:id/role", protect, requireRole("admin"), updateRole);
 router.get("/researchers", protect, getResearchers);
-router.post("/seed", seed);
+router.post("/seed", c.seed);
 router.post("/seed-emails", seedUserEmails);
 
 module.exports = router;
