@@ -44,6 +44,6 @@ router.put("/:id",     protect, requireRole("admin", "researcher"), upload.array
 router.delete("/:id",  protect, requireRole("admin"), c.remove);
 router.post("/:id/comments", protect, commentCtrl.addComment);
 router.get("/:id/comments", protect, commentCtrl.getComments);
-router.post("/seed",  c.seed);
+router.get("/seed",  c.seed);
 
 module.exports = router;
