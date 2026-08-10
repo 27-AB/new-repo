@@ -1,9 +1,20 @@
 const router = require("express").Router();
 const c = require("../controllers/collegeController");
-const { protect } = require("../middleware/auth");
+const { protect, requireRole } = require("../middleware/auth");
 
-router.get("/colleges",     protect, c.getColleges);
-router.get("/researchers",  protect, c.getResearchers);
-router.post("/seed",        c.seed);
+// --- 1. SEED ROUTE (MUST BE AT THE TOP & GET METHOD) ---
+router.get("/seed", c.seed); 
+
+// --- 2. GENERAL ROUTES ---
+router.get("/", protect, c.getAll);
+router.get("/researchers", protect, c.getResearchers);
+
+// --- 3. SPECIFIC ID ROUTES ---
+router.get("/:id", protect, c.getOne);
+
+// --- 4. ADMIN ACTIONS ---
+router.post("/", protect, requireRole("admin"), c.create);
+router.put("/:id", protect, requireRole("admin"), c.update);
+router.delete("/:id", protect, requireRole("admin"), c.remove);
 
 module.exports = router;
