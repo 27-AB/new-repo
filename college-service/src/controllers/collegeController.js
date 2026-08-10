@@ -1,13 +1,16 @@
-const College = require("../models/College");
-// Note: If Researcher is in a different file, import it separately
-const Researcher = require("../models/Researcher");
+// 1. Correct the imports to match your model export
+const models = require("../models/College");
+const College = models.College;
+const Researcher = models.Researcher;
 
 // GET /colleges/
 exports.getAll = async (req, res) => {
   try {
-    const colleges = await College.find().sort({ name: 1 }).maxTimeMS(5000);
+    // Removed .maxTimeMS(5000) to prevent 500 errors on slow connections
+    const colleges = await College.find().sort({ name: 1 });
     res.json({ success: true, total: colleges.length, colleges });
   } catch (err) { 
+    console.error("Error in getAll:", err);
     res.status(500).json({ success: false, message: err.message }); 
   }
 };
@@ -23,11 +26,11 @@ exports.getResearchers = async (req, res) => {
     const researchers = await Researcher.find(query)
       .sort({ publications: -1 })
       .skip((page - 1) * limit)
-      .limit(Number(limit))
-      .maxTimeMS(5000);
+      .limit(Number(limit));
       
     res.json({ success: true, total: researchers.length, researchers });
   } catch (err) { 
+    console.error("Error in getResearchers:", err);
     res.status(500).json({ success: false, message: err.message }); 
   }
 };
