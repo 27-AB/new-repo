@@ -8,7 +8,7 @@ router.get("/seed", c.seed);
 
 // --- 2. GENERAL ROUTES ---
 // GET /colleges/ - Get all colleges
-router.get("/", protect, c.getAll);
+router.get("/", c.getAll);
 
 // GET /colleges/researchers - Get all researchers
 router.get("/researchers", protect, c.getResearchers);
