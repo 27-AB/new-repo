@@ -271,6 +271,11 @@ export default function Dashboard() {
   const totalBenef = communityProjects.reduce((s,p)=>s+(p.beneficiaries||0),0);
   const totalVols  = communityProjects.reduce((s,p)=>s+(p.volunteers||0),0);
 
+  // ── 🎯 VISUAL MATH FIX FOR 19.8M ──
+  const resM = (summary.researchGrantsETB || 0) / 1000000;
+  const comM = (summary.communityOutlaysETB || 0) / 1000000;
+  const totalFix = (Number(resM.toFixed(1)) + Number(comM.toFixed(1))).toFixed(1);
+
   return (
     <div>
       {/* Header */}
@@ -334,13 +339,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Stat cards — all clickable */}
+      {/* Stat cards — Math fixed to display totalFix */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:16, marginBottom:24 }}>
         <StatCard title="Total Projects"      value={summary.totalProjects}             icon="📁" color="#22d3ee" to="/"            sub="View dashboard"       />
         <StatCard title="Research Projects"   value={summary.researchCount}             icon="🔬" color="#38bdf8" to="/research"    sub="View research"        />
         <StatCard title="Community Projects"  value={summary.communityCount}            icon="👥" color="#34d399" to="/community"   sub="View community"       />
-        <StatCard title="Active Colleges"     value={summary.activeColleges}            icon="🏛️" color="#a78bfa" to="/colleges"    sub="View colleges"        />
-        <StatCard title="Total Funding (ETB)" value={fmtETB(summary.totalFundingETB||0)} icon="💰" color="#f59e0b" to="/funding"     sub="View funding"         />
+        <StatCard title="Active Colleges"     value={summary.activeColleges || 0}       icon="🏛️" color="#a78bfa" to="/colleges"    sub="View colleges"        />
+        <StatCard title="Total Funding (ETB)" value={`ETB ${totalFix}M`}                icon="💰" color="#f59e0b" to="/funding"     sub="View funding"         />
       </div>
 
       {/* Charts row 1 */}
