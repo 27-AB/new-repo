@@ -1,14 +1,14 @@
-// 1. Destructure the imports to match your module.exports
 const { College, Researcher } = require("../models/College");
 
 // GET /colleges/
 exports.getAll = async (req, res) => {
   try {
-    // We removed .maxTimeMS(5000) to stop the 500 timeouts
+    console.log("Fetching all colleges...");
     const colleges = await College.find().sort({ name: 1 });
+    console.log(`Found ${colleges.length} colleges.`);
     res.json({ success: true, total: colleges.length, colleges });
   } catch (err) { 
-    console.error("GET ALL Error:", err.message);
+    console.error("CRITICAL ERROR IN GET ALL:", err.message);
     res.status(500).json({ success: false, message: err.message }); 
   }
 };
@@ -76,10 +76,11 @@ exports.remove = async (req, res) => {
 // SEED DATA
 exports.seed = async (req, res) => {
   try {
+    console.log("Starting seed process...");
     await College.deleteMany({});
     await Researcher.deleteMany({});
 
-    await College.insertMany([
+    const seededColleges = await College.insertMany([
       {
         name: "College of Electrical Engineering & Computing",
         shortName: "CEEC",
@@ -123,8 +124,10 @@ exports.seed = async (req, res) => {
       { name: "Prof. Almaz Tadesse", title: "Prof.", college: "College of Mechanical, Chemical & Materials Engineering", department: "Chemical Engineering", email: "almaz.tadesse@astu.edu.et", publications: 32 }
     ]);
 
-    res.json({ success: true, message: "Colleges and researchers seeded with correct ASTU data." });
+    console.log("Seed successful!");
+    res.json({ success: true, message: "Colleges and researchers seeded successfully.", count: seededColleges.length });
   } catch (err) { 
+    console.error("SEED ERROR:", err.message);
     res.status(500).json({ success: false, message: err.message }); 
   }
 };
