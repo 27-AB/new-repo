@@ -12,7 +12,7 @@ const getAggregatedAnalytics = async (token) => {
   const [rRes, cRes, colRes, rchRes] = await Promise.allSettled([
     axios.get(`${RESEARCH_URL}/projects?limit=100`,            authHeader(token)),
     axios.get(`${COMMUNITY_URL}/community-projects?limit=100`, authHeader(token)),
-    axios.get(`${COLLEGE_URL}/colleges`,                       authHeader(token)),
+    axios.get(`${COLLEGE_URL}/`,                       authHeader(token)),
     axios.get(`${COLLEGE_URL}/researchers`,                    authHeader(token)),
   ]);
 
