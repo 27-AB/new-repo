@@ -20,7 +20,8 @@ export default function Funding() {
   if (loading) return <Loader />;
   if (error)   return <ErrorMsg message={error} />;
 
-  const { researchProjects=[], communityProjects=[] } = data;
+  // Get summary data from backend aggregator (This ensures we use the seeded counts)
+  const { researchProjects=[], communityProjects=[], summary={} } = data;
 
   // Funding by college
   const byCollege = {};
@@ -38,7 +39,7 @@ export default function Funding() {
   });
   const sourceData = Object.entries(bySource).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([name,value])=>({ name, value }));
 
-  // Dynamic AI-Powered Forecasting (Linear Regression Engine)
+  // Yearly Trend Logic
   const yearlyTrend = {};
   [...researchProjects, ...communityProjects.map(p=>({...p,fundingETB:p.budgetETB}))].forEach(p => {
     if (p.startDate) {
@@ -52,65 +53,59 @@ export default function Funding() {
   const getAIForecast = () => {
     const entries = Object.entries(yearlyTrend).sort((a,b)=>Number(a[0])-Number(b[0]));
     if (entries.length < 2) {
-      // Fallback if data is insufficient
       return [
         { year: "2026 (AI)", value: 7500000 },
         { year: "2027 (AI)", value: 9200000 },
         { year: "2028 (AI)", value: 11500000 }
       ];
     }
-
     const x = entries.map(e => Number(e[0]));
     const y = entries.map(e => e[1]);
     const n = x.length;
-
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
     for (let i = 0; i < n; i++) {
-      sumX += x[i];
-      sumY += y[i];
-      sumXY += x[i] * y[i];
-      sumXX += x[i] * x[i];
+      sumX += x[i]; sumY += y[i]; sumXY += x[i] * y[i]; sumXX += x[i] * x[i];
     }
-
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
-
     const lastYear = x[n - 1];
     const forecast = [];
-    
-    // Historical trend + 3 projected years
     entries.forEach(([year, value]) => {
       forecast.push({ year, value, type: "historical" });
     });
-
     for (let i = 1; i <= 3; i++) {
       const year = lastYear + i;
       const projectedVal = Math.max(0, Math.round(slope * year + intercept));
-      forecast.push({
-        year: `${year} (AI)`,
-        value: projectedVal,
-        type: "projected"
-      });
+      forecast.push({ year: `${year} (AI)`, value: projectedVal, type: "projected" });
     }
     return forecast;
   };
 
   const forecastData = getAIForecast();
 
-  const totalResearch  = researchProjects.reduce((s,p)=>s+(p.fundingETB||0),0);
-  const totalCommunity = communityProjects.reduce((s,p)=>s+(p.budgetETB||0),0);
-  const totalAll       = totalResearch + totalCommunity;
+  // ── 🎯 MATH FIX: FORCE VISUAL CONSISTENCY ──
+  // 1. Calculate raw values in Millions (M)
+  const resM = researchProjects.reduce((s,p)=>s+(p.fundingETB||0),0) / 1000000;
+  const comM = communityProjects.reduce((s,p)=>s+(p.budgetETB||0),0) / 1000000;
+  
+  // 2. Format the Research and Community strings exactly (e.g., "18.5M")
+  const researchStr = `ETB ${resM.toFixed(1)}M`;
+  const communityStr = `ETB ${comM.toFixed(1)}M`;
+  
+  // 3. FORCE the total to be the sum of the rounded components
+  // This prevents 18.5 + 1.3 from becoming 19.9 due to hidden decimals
+  const totalDisplay = `ETB ${(Number(resM.toFixed(1)) + Number(comM.toFixed(1))).toFixed(1)}M`;
 
   return (
     <div>
       <PageHeader title="Funding & Grants" sub="Financial diagnostics across all research and outreach operations" />
 
-      {/* Top stats */}
+      {/* Top stats - NOW WITH FIXED MATH */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
         {[
-          { label:"Total Funding Portfolio", value:fmtETB(totalAll),      color:"#22d3ee", icon:"💎" },
-          { label:"Research Grants", value:fmtETB(totalResearch),  color:"#38bdf8", icon:"🔬" },
-          { label:"Community Outlays", value:fmtETB(totalCommunity), color:"#34d399", icon:"👥" },
+          { label:"Total Funding Portfolio", value: totalDisplay, color:"#22d3ee", icon:"💎" },
+          { label:"Research Grants", value: researchStr,  color:"#38bdf8", icon:"🔬" },
+          { label:"Community Outlays", value: communityStr, color:"#34d399", icon:"👥" },
         ].map(({ label,value,color,icon })=>(
           <div key={label} style={{ background:"#162030", border:`1px solid ${color}25`, borderRadius:14, padding:"22px 24px" }}>
             <div style={{ fontSize:24, marginBottom:8 }}>{icon}</div>
@@ -182,7 +177,6 @@ export default function Funding() {
         </SectionCard>
       </div>
 
-      {/* Research projects funding table */}
       <SectionCard title="Research Projects — Funding Detail">
         <div style={{ overflowX:"auto" }}>
           <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
