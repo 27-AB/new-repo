@@ -38,8 +38,13 @@ const getAggregatedAnalytics = async (token) => {
   // ── Projects per college
   const byCollege = allProjects.reduce((acc, p) => { acc[p.college] = (acc[p.college]||0)+1; return acc; }, {});
 
-  // ── Total funding
-  const totalFunding = allProjects.reduce((sum, p) => sum + (p.fundingETB || p.budgetETB || 0), 0);
+  // ── 🎯 FIX: FINANCIAL MATH LOGIC 
+  // We calculate each group separately to ensure the Dashboard cards match exactly.
+  const researchTotalFunding  = researchProjects.reduce((sum, p) => sum + (p.fundingETB || 0), 0);
+  const communityTotalFunding = communityProjects.reduce((sum, p) => sum + (p.budgetETB || 0), 0);
+  
+  // Sum them up. We use toFixed and Number to prevent floating point rounding errors (e.g. 19.800000002)
+  const totalFunding = Number((researchTotalFunding + communityTotalFunding).toFixed(2));
 
   // ── Total beneficiaries (community projects)
   const totalBeneficiaries = communityProjects.reduce((sum, p) => sum + (p.beneficiaries||0), 0);
@@ -48,7 +53,7 @@ const getAggregatedAnalytics = async (token) => {
   // ── Total publications
   const totalPublications = researchProjects.reduce((sum, p) => sum + (p.publications||0), 0);
 
-  // ── Yearly trend from project start dates (not Mongo createdAt)
+  // ── Yearly trend logic
   const getProjectYear = (p) => {
     const raw = p.startDate || p.createdAt;
     if (!raw) return null;
@@ -100,8 +105,13 @@ const getAggregatedAnalytics = async (token) => {
       totalProjects:      allProjects.length,
       researchCount:      researchProjects.length,
       communityCount:     communityProjects.length,
-      activeColleges:     colleges.length,
-      totalFundingETB:    totalFunding,
+      activeColleges:     colleges.length, // This will be 0 until you run the seed command
+      
+      // Fixed Funding keys
+      totalFundingETB:    totalFunding,          // Should now show 19.8M
+      researchGrantsETB:  researchTotalFunding,   // 18.5M
+      communityOutlaysETB: communityTotalFunding, // 1.3M
+
       totalPublications,
       totalBeneficiaries,
       totalVolunteers,
