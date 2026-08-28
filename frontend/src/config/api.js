@@ -12,12 +12,22 @@ const ENV = {
   analytics: process.env.REACT_APP_API_URL,
 };
 
+// These are used when you are working on your local computer
 const LOCAL = {
   auth: "http://localhost:4004",
   research: "http://localhost:4001",
   community: "http://localhost:4002",
   college: "http://localhost:4003",
   analytics: "http://localhost:4000",
+};
+
+// These are used when the site is live on Vercel
+const PRODUCTION = {
+  auth: "https://astu-auth-service.onrender.com",
+  research: "https://astu-research-service.onrender.com",
+  community: "https://astu-community-service.onrender.com",
+  college: "https://astu-college-service.onrender.com",
+  analytics: "https://astu-analytics-service.onrender.com",
 };
 
 const STORAGE_KEYS = {
@@ -33,13 +43,19 @@ function resolveUrl(service) {
     typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEYS[service]) : null;
   const fromEnv = ENV[service];
 
-  // On Vercel/production: ignore old localhost values saved in another session
-  if (stored && (isLocalDev || !stored.includes("localhost"))) {
+  // 1. If we have a manually saved URL in "Settings" that isn't localhost, use it
+  if (stored && !stored.includes("localhost")) {
     return stored;
   }
+
+  // 2. If Vercel Environment Variables are set, use them
   if (fromEnv) return fromEnv;
-  if (stored) return stored;
-  return LOCAL[service];
+
+  // 3. If we are on your local computer (VS Code), use localhost
+  if (isLocalDev) return LOCAL[service];
+
+  // 4. Default: Use the Render Cloud URLs
+  return PRODUCTION[service];
 }
 
 export const getApiUrls = () => ({
