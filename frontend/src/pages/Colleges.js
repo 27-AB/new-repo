@@ -64,7 +64,7 @@ export default function Colleges() {
   }, [activeView, token]);
 
   const handleSeed = async () => {
-    await fetch(`${API}/seed`, { method:"POST", headers:{ Authorization:`Bearer ${token}` }});
+    await fetch(`${API}/seed`, { method:"GET", headers:{ Authorization:`Bearer ${token}` }});
     window.location.reload();
   };
 
