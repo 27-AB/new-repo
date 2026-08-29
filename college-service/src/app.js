@@ -48,7 +48,7 @@ app.get("/health", (_req, res) => res.json({ status: "ok", service: "college-ser
 
 // Route Mapping
 const collegeRouter = require("./routes/collegeRouter");
-app.use("/", collegeRouter); // This handles /colleges and /seed
+app.use("/colleges", collegeRouter); // This handles /colleges and /seed
 app.use("/timeline", require("./routes/timelineRouter"));
 app.use("/milestones", require("./routes/milestoneRouter"));
 
