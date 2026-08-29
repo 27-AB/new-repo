@@ -6,23 +6,28 @@ const app = express();
 
 // Replace app.use(cors()); with this:
 const allowedOrigins = [
-  "https://astu-analytics.vercel.app", // Your Vercel URL
-  "http://localhost:3000",             // Standard React port
-  "http://localhost:3001"              // Your project's local port
+  "https://astu-analytics.vercel.app",
+  "http://localhost:3000",
+  "http://localhost:3001"
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
+    // Allow requests with no origin (like mobile apps)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Check if the origin is in our list OR is a vercel.app link
+    const isVercel = origin.endsWith(".vercel.app");
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || isVercel) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json());
 
