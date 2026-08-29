@@ -72,6 +72,55 @@ exports.remove = async (req, res) => {
     res.status(500).json({ success: false, message: err.message }); 
   }
 };
+// Create a researcher (POST /researchers)
+exports.createResearcher = async (req, res) => {
+  try {
+    const payload = {
+      name: req.body.name,
+      title: req.body.title || "Dr.",
+      college: req.body.college || "",
+      department: req.body.department || "",
+      email: req.body.email || "",
+      specialization: req.body.specialization || [],
+      publications: Number(req.body.publications) || 0,
+      activeProjects: Number(req.body.activeProjects) || 0,
+      bio: req.body.bio || ""
+    };
+    const researcher = await Researcher.create(payload);
+    res.status(201).json({ success: true, researcher });
+  } catch (err) {
+    console.error("createResearcher error:", err.message);
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+exports.getResearcher = async (req, res) => {
+  try {
+    const r = await Researcher.findById(req.params.id);
+    if (!r) return res.status(404).json({ success: false, message: "Researcher not found" });
+    res.json({ success: true, researcher: r });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.updateResearcher = async (req, res) => {
+  try {
+    const r = await Researcher.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json({ success: true, researcher: r });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+exports.removeResearcherById = async (req, res) => {
+  try {
+    await Researcher.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: "Researcher deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
 // SEED DATA
 exports.seed = async (req, res) => {
