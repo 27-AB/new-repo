@@ -4,7 +4,26 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const app = express();
 
-app.use(cors()); 
+// Replace app.use(cors()); with this:
+const allowedOrigins = [
+  "https://astu-analytics.vercel.app", // Your Vercel URL
+  "http://localhost:3000",             // Standard React port
+  "http://localhost:3001"              // Your project's local port
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // Enhanced Connection Logic
