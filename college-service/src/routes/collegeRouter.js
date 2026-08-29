@@ -11,7 +11,7 @@ router.get("/seed", c.seed);
 router.get("/", c.getAll);
 
 // GET /colleges/researchers - Get all researchers
-router.get("/researchers", protect, c.getResearchers);
+router.get("/researchers", c.getResearchers);
 
 // --- 3. SPECIFIC ID ROUTES ---
 // GET /colleges/:id - Get one college by ID
