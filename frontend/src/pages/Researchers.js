@@ -12,11 +12,30 @@ export default function ResearchersPage() {
   const [researchers, setResearchers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // form state (used for both add and edit)
-  const emptyForm = { name: "", title: "Dr.", college: "", department: "", email: "", specialization: "", publications: 0, activeProjects: 0, bio: "" };
+  const emptyForm = {
+    name: "",
+    title: "Dr.",
+    college: "",
+    department: "",
+    email: "",
+    specialization: "",
+    publications: 0,
+    activeProjects: 0,
+    bio: ""
+  };
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+
+  const showSuccess = (msg) => {
+    setSuccess(msg);
+    setTimeout(() => setSuccess(""), 4000);
+  };
+
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
 
   const load = async () => {
     if (!token) return;
@@ -39,11 +58,16 @@ export default function ResearchersPage() {
 
   useEffect(() => { load(); }, [token]);
 
-  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleChange = (e) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const submitCreate = async (e) => {
     e.preventDefault();
     setError(null);
+    if (!form.name || !form.email) return setError("Name and email are required.");
+    if (!isValidEmail(form.email)) return setError("Please enter a valid email address.");
+    setIsSubmitting(true);
     try {
       const payload = {
         ...form,
@@ -58,12 +82,15 @@ export default function ResearchersPage() {
       });
       if (!res.ok) {
         const text = await res.text().catch(()=>null);
-        throw new Error(`Create failed (${res.status}) ${text ? "- " + text : ""}`);
+        throw new Error(`Create failed (${res.status})${text ? ` - ${text}` : ""}`);
       }
       setForm(emptyForm);
       await load();
+      showSuccess("Researcher added.");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -87,6 +114,9 @@ export default function ResearchersPage() {
     e.preventDefault();
     if (!editingId) return;
     setError(null);
+    if (!form.name || !form.email) return setError("Name and email are required.");
+    if (!isValidEmail(form.email)) return setError("Please enter a valid email address.");
+    setIsSubmitting(true);
     try {
       const payload = {
         ...form,
@@ -101,13 +131,16 @@ export default function ResearchersPage() {
       });
       if (!res.ok) {
         const text = await res.text().catch(()=>null);
-        throw new Error(`Update failed (${res.status}) ${text ? "- " + text : ""}`);
+        throw new Error(`Update failed (${res.status})${text ? ` - ${text}` : ""}`);
       }
       setEditingId(null);
       setForm(emptyForm);
       await load();
+      showSuccess("Researcher updated.");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -115,13 +148,30 @@ export default function ResearchersPage() {
 
   const handleDelete = async (id) => {
     if (!confirm("Delete this researcher?")) return;
+    setError(null);
     try {
       const res = await fetch(`${API}/colleges/researchers/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+      if (!res.ok) {
+        const text = await res.text().catch(()=>null);
+        throw new Error(`Delete failed (${res.status})${text ? ` - ${text}` : ""}`);
+      }
       await load();
+      showSuccess("Researcher deleted.");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleSeed = async () => {
+    if (!isAdmin) return;
+    try {
+      // seed route is GET on the backend
+      await fetch(`${API}/colleges/seed`);
+      await load();
+      showSuccess("Seed completed.");
     } catch (err) {
       setError(err.message);
     }
@@ -136,7 +186,17 @@ export default function ResearchersPage() {
       <h1 style={{ marginBottom: 6 }}>Researchers & Faculty</h1>
       <p style={{ color: "#94a3b8", marginTop: 0 }}>{researchers.length} active researchers • {totalPublications} total publications</p>
 
+      {success && <div style={{ color: "#60a5fa", marginBottom: 12 }}>{success}</div>}
       {error && <div style={{ color: "salmon", marginBottom: 12 }}>{error}</div>}
+
+      {isAdmin && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div />
+          <button onClick={handleSeed} style={{ padding: "8px 12px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.08)", cursor: "pointer" }}>
+            Seed Faculty Data
+          </button>
+        </div>
+      )}
 
       {isAdmin && (
         <section style={{ marginBottom: 20, padding: 12, borderRadius: 8, background: "var(--bg-secondary)" }}>
@@ -146,13 +206,26 @@ export default function ResearchersPage() {
             <input name="title" placeholder="Title" value={form.title} onChange={handleChange} />
             <input name="college" placeholder="College" value={form.college} onChange={handleChange} />
             <input name="department" placeholder="Department" value={form.department} onChange={handleChange} />
-            <input name="email" placeholder="Email" value={form.email} onChange={handleChange} />
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={form.email}
+                onChange={handleChange}
+                required
+                aria-required="true"
+              />
+              <small style={{ color: "#94a3b8", marginTop: 6, fontSize: 12 }}>We will only use this for contact and admin notifications.</small>
+            </div>
             <input name="specialization" placeholder="Specialization (comma separated)" value={form.specialization} onChange={handleChange} />
             <input name="publications" type="number" placeholder="Publications" value={form.publications} onChange={handleChange} />
             <input name="activeProjects" type="number" placeholder="Active projects" value={form.activeProjects} onChange={handleChange} />
             <textarea name="bio" placeholder="Short bio" value={form.bio} onChange={handleChange} style={{ gridColumn: "1 / -1", minHeight: 80 }} />
             <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8 }}>
-              <button type="submit" style={{ padding: "8px 12px" }}>{editingId ? "Save" : "Add researcher"}</button>
+              <button type="submit" style={{ padding: "8px 12px" }} disabled={isSubmitting}>
+                {isSubmitting ? (editingId ? "Saving…" : "Adding…") : (editingId ? "Save" : "Add researcher")}
+              </button>
               {editingId && <button type="button" onClick={cancelEdit} style={{ padding: "8px 12px" }}>Cancel</button>}
             </div>
           </form>
