@@ -21,5 +21,13 @@ router.get("/:id", protect, c.getOne);
 router.post("/", protect, requireRole("admin"), c.create);
 router.put("/:id", protect, requireRole("admin"), c.update);
 router.delete("/:id", protect, requireRole("admin"), c.remove);
+// Create researcher
+router.post("/researchers", protect, requireRole("admin"), c.createResearcher);
+// Read single researcher (protected)
+router.get("/researchers/:id", protect, c.getResearcher);
+// Update researcher
+router.put("/researchers/:id", protect, requireRole("admin"), c.updateResearcher);
+// Delete researcher
+router.delete("/researchers/:id", protect, requireRole("admin"), c.removeResearcherById);
 
 module.exports = router;
