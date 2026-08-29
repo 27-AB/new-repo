@@ -313,7 +313,7 @@ exports.generateResearchPDF = async (req, res) => {
     doc.fontSize(18).fillColor("#334155").text("Adama Science and Technology University", { align: "center" });
     doc.moveDown(0.3);
     doc.fontSize(13).fillColor("#64748b")
-       .text("Office of Research and Innovation Excellence", { align: "center" })
+       .text("Office of Research and Technology Transfer", { align: "center" })
        .text(`Academic Year: ${new Date().getFullYear()}`, { align: "center" })
        .text(`Report Date: ${new Date().toLocaleDateString("en-ET", { dateStyle: "full" })}`, { align: "center" });
     
