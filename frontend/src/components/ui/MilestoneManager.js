@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext'; // adjust path to match your project structure
 import { Btn } from "./index";
+import { getServiceUrl } from "../../config/api";
 
 // ─── Inline style constants ────────────────────────────────────────────────────
 const DARK = '#0d1b2a';
@@ -162,11 +163,15 @@ const MilestoneManager = ({ projectId, entityType = 'research' }) => {
   const [saving,      setSaving]      = useState(false);
   const [showCustom,  setShowCustom]  = useState(false);
 
+  const researchUrl = getServiceUrl('research');
+  const communityUrl = getServiceUrl('community');
+  const collegeUrl = getServiceUrl('college');
+
   const apiBase = entityType === 'community'
-    ? 'http://localhost:4002/milestones'
+    ? `${communityUrl}/milestones`
     : entityType === 'college'
-    ? 'http://localhost:4003/milestones'
-    : 'http://localhost:4001/milestones';
+    ? `${collegeUrl}/milestones`
+    : `${researchUrl}/milestones`;
 
   const load = async () => {
     if (!projectId) return;
