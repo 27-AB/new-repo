@@ -23,7 +23,8 @@ export default function ResearchersPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/researchers?limit=500`, {
+      const params = new URLSearchParams({ limit: 500 });
+      const res = await fetch(`${API}/colleges/researchers?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error(`Failed to load researchers (${res.status})`);
@@ -50,7 +51,7 @@ export default function ResearchersPage() {
         publications: Number(form.publications) || 0,
         activeProjects: Number(form.activeProjects) || 0
       };
-      const res = await fetch(`${API}/researchers`, {
+      const res = await fetch(`${API}/colleges/researchers`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -93,7 +94,7 @@ export default function ResearchersPage() {
         publications: Number(form.publications) || 0,
         activeProjects: Number(form.activeProjects) || 0
       };
-      const res = await fetch(`${API}/researchers/${editingId}`, {
+      const res = await fetch(`${API}/colleges/researchers/${editingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -115,7 +116,7 @@ export default function ResearchersPage() {
   const handleDelete = async (id) => {
     if (!confirm("Delete this researcher?")) return;
     try {
-      const res = await fetch(`${API}/researchers/${id}`, {
+      const res = await fetch(`${API}/colleges/researchers/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
