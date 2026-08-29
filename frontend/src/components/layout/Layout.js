@@ -50,6 +50,12 @@ function LayoutContent({ children }) {
             const data = await res.json();
             setUnreadCount(data.unreadCount || 0);
           }
+         if (!res.ok) {
+  console.warn("Notifications failed to load");
+  return setUnreadCount(0); // Set to 0 instead of crashing
+}
+
+const data = await res.json();
         } catch (err) {
           console.error("Failed to fetch notification count:", err);
         }
