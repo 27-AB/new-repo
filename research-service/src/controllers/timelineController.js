@@ -44,10 +44,10 @@ exports.createTimelineItem = async (req, res) => {
       ...req.body,
       entityType,
       entityId,
-      createdBy: req.user.id,
-      createdByName: req.user.name,
-      updatedBy: req.user.id,
-      updatedByName: req.user.name
+      createdBy: req.user.id || null,
+      createdByName: req.user.name || "System",
+      updatedBy: req.user.id || null,
+      updatedByName: req.user.name || "System"
     };
     
     const timelineItem = await Timeline.create(timelineData);
@@ -70,8 +70,8 @@ exports.updateTimelineItem = async (req, res) => {
       req.params.id,
       {
         ...req.body,
-        updatedBy: req.user.id,
-        updatedByName: req.user.name
+        updatedBy: req.user.id || null,
+        updatedByName: req.user.name || "System"
       },
       { new: true, runValidators: true }
     );
