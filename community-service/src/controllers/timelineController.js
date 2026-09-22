@@ -40,16 +40,15 @@ exports.createTimelineItem = async (req, res) => {
   try {
     const { entityType, entityId } = req.params;
     
-    const timelineData = {
+     const timelineData = {
       ...req.body,
       entityType,
       entityId,
-      createdBy: req.user.id,
-      createdByName: req.user.name,
-      updatedBy: req.user.id,
-      updatedByName: req.user.name
+      createdBy: req.user?.id || null,
+      createdByName: req.user?.name || "System",
+      updatedBy: req.user?.id || null,
+      updatedByName: req.user?.name || "System"
     };
-    
     const timelineItem = await Timeline.create(timelineData);
     
     res.status(201).json({ success: true, timelineItem });
@@ -67,14 +66,14 @@ exports.updateTimelineItem = async (req, res) => {
     }
     
     const updatedItem = await Timeline.findByIdAndUpdate(
-      req.params.id,
-      {
-        ...req.body,
-        updatedBy: req.user.id,
-        updatedByName: req.user.name
-      },
-      { new: true, runValidators: true }
-    );
+  req.params.id,
+  {
+    ...req.body,
+    updatedBy: req.user?.id || null,
+    updatedByName: req.user?.name || "System"
+  },
+  { new: true, runValidators: true }
+);
     
     res.json({ success: true, timelineItem: updatedItem });
   } catch (err) {
