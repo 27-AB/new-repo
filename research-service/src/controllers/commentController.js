@@ -2,7 +2,8 @@ const Comment = require("../models/Comment");
 
 exports.addComment = async (req, res) => {
   try {
-    const { projectId, text } = req.body;
+    const { text } = req.body;
+    const projectId = req.params.id;
     // req.user comes from your auth middleware
     const comment = await Comment.create({
       projectId,
